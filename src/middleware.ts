@@ -1,0 +1,121 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
+
+// Rate limiting store
+const rateLimitMap = new Map<string, { count: number; lastReset: number }>()
+
+function checkRateLimit(key: string, limit: number = 10, windowMs: number = 60000): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now - entry.lastReset > windowMs) {
+    rateLimitMap.set(key, { count: 1, lastReset: now })
+    return true
+  }
+
+  if (entry.count >= limit) {
+    return false
+  }
+
+  entry.count++
+  return true
+}
+
+const protectedRoutes = ['/dashboard', '/documents', '/archives', '/audit', '/administration', '/modules', '/workflows', '/notifications', '/settings', '/admin']
+const authRoutes = ['/login', '/register']
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const response = NextResponse.next()
+
+  // Security headers
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+
+  // Rate limiting for auth endpoints
+  if (pathname.startsWith('/api/auth')) {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    if (!checkRateLimit(`auth:${ip}`, 30, 60000)) {
+      return NextResponse.json({ error: 'Trop de tentatives. Réessayez plus tard.' }, { status: 429 })
+    }
+  }
+
+  // Rate limiting for API
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    if (!checkRateLimit(`api:${ip}`, 100, 60000)) {
+      return NextResponse.json({ error: 'Limite de requêtes dépassée.' }, { status: 429 })
+    }
+  }
+
+  // Health check - allow through
+  if (pathname === '/api/health') {
+    return response
+  }
+
+  // Get token
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+
+  // Redirect authenticated users away from auth pages
+  if (token && authRoutes.some(route => pathname.startsWith(route))) {
+    const orgType = token.organizationType as string
+    const role = token.role as string
+    if (role === 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+    const dashboardRoutes: Record<string, string> = {
+      UNIVERSITY: '/dashboard/university',
+      HOSPITAL: '/dashboard/hospital',
+      COMPANY: '/dashboard/company',
+      GOVERNMENT: '/dashboard/government',
+      SME: '/dashboard/sme',
+      LAW_FIRM: '/dashboard/law-firm',
+    }
+    const redirectPath = dashboardRoutes[orgType] || '/dashboard'
+    return NextResponse.redirect(new URL(redirectPath, request.url))
+  }
+
+  // Check protected routes
+  const isProtected = protectedRoutes.some(route => pathname.startsWith(route))
+  
+  if (isProtected && !token) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('callbackUrl', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Role-based protection for super admin routes
+  if (token && pathname.startsWith('/admin') && (token.role as string) !== 'SUPER_ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // API route protection
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && pathname !== '/api/health') {
+    if (!token) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    '/dashboard/:path*',
+    '/documents/:path*',
+    '/archives/:path*',
+    '/audit/:path*',
+    '/administration/:path*',
+    '/modules/:path*',
+    '/workflows/:path*',
+    '/notifications/:path*',
+    '/settings/:path*',
+    '/admin/:path*',
+    '/login',
+    '/register',
+    '/api/:path*',
+  ],
+}

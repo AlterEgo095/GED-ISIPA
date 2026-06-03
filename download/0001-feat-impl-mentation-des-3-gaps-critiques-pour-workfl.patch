@@ -1,0 +1,646 @@
+From a7f35234f2f1891deb5f61b44a6a549b20392d9e Mon Sep 17 00:00:00 2001
+From: Z User <z@container>
+Date: Tue, 2 Jun 2026 21:33:33 +0000
+Subject: [PATCH] =?UTF-8?q?feat:=20impl=C3=A9mentation=20des=203=20gaps=20?=
+ =?UTF-8?q?critiques=20pour=20workflow=20complet?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+1. Ajout route API POST /api/documents/[id]/submit
+   - Transition DRAFT → PENDING_REVIEW avec validation workflow
+   - Permissions: ADMIN, SECRETARY, DIRECTOR
+   - Audit log automatique
+
+2. Ajout route API POST /api/documents/[id]/versions
+   - Upload nouvelle version de document
+   - SHA-256 hash, sauvegarde fichier, incrément version
+   - Document retourne en DRAFT après nouvelle version
+   - Journal des modifications (changeLog)
+
+3. Activation paramètres en écriture dans Administration
+   - Chargement dynamique depuis /api/settings
+   - Bouton 'Sauvegarder les paramètres' fonctionnel
+   - Champs éditables: taille max, rétention, MIME, institution
+
+4. Boutons UI ajoutés:
+   - 'Soumettre pour révision' (DRAFT/PENDING_REVIEW)
+   - 'Resoumettre' (REJECTED → PENDING_REVIEW)
+   - 'Publier' (APPROVED → PUBLISHED)
+   - Dialog 'Nouvelle version' dans onglet Versions
+   - Bouton 'Publier' dans la liste de documents
+---
+ .gitignore                                   |   1 +
+ src/app/(dashboard)/administration/page.tsx  | 106 +++++++++++----
+ src/app/(dashboard)/documents/[id]/page.tsx  | 132 +++++++++++++++++++
+ src/app/(dashboard)/documents/page.tsx       |  16 +++
+ src/app/api/documents/[id]/submit/route.ts   |  66 ++++++++++
+ src/app/api/documents/[id]/versions/route.ts | 110 ++++++++++++++++
+ 6 files changed, 408 insertions(+), 23 deletions(-)
+ create mode 100644 src/app/api/documents/[id]/submit/route.ts
+ create mode 100644 src/app/api/documents/[id]/versions/route.ts
+
+diff --git a/.gitignore b/.gitignore
+index 5256de6..47f716b 100755
+--- a/.gitignore
++++ b/.gitignore
+@@ -81,3 +81,4 @@ start.sh
+ run-dev.sh
+ run-server.sh
+ 3000
++test-results/
+diff --git a/src/app/(dashboard)/administration/page.tsx b/src/app/(dashboard)/administration/page.tsx
+index 0d0a157..0caa42f 100755
+--- a/src/app/(dashboard)/administration/page.tsx
++++ b/src/app/(dashboard)/administration/page.tsx
+@@ -76,6 +76,9 @@ export default function AdministrationPage() {
+   const [userDialogOpen, setUserDialogOpen] = useState(false);
+   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
+   const [saving, setSaving] = useState(false);
++  const [settings, setSettings] = useState<Record<string, string>>({});
++  const [settingsLoading, setSettingsLoading] = useState(true);
++  const [settingsSaving, setSettingsSaving] = useState(false);
+ 
+   const [userForm, setUserForm] = useState({
+     name: "",
+@@ -97,6 +100,7 @@ export default function AdministrationPage() {
+     if (userRole === "ADMIN") {
+       fetchUsers();
+       fetchDepartments();
++      fetchSettings();
+     }
+   }, [userRole]);
+ 
+@@ -151,6 +155,42 @@ export default function AdministrationPage() {
+     }
+   };
+ 
++  const fetchSettings = async () => {
++    try {
++      setSettingsLoading(true);
++      const res = await fetch("/api/settings");
++      if (res.ok) {
++        const data = await res.json();
++        setSettings(data);
++      }
++    } catch (error) {
++      console.error("Error fetching settings:", error);
++    } finally {
++      setSettingsLoading(false);
++    }
++  };
++
++  const handleSaveSettings = async () => {
++    setSettingsSaving(true);
++    try {
++      const res = await fetch("/api/settings", {
++        method: "PUT",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify(settings),
++      });
++      if (res.ok) {
++        toast.success("Paramètres sauvegardés avec succès");
++      } else {
++        const error = await res.json();
++        toast.error(error.error || "Erreur");
++      }
++    } catch (error) {
++      toast.error("Erreur serveur");
++    } finally {
++      setSettingsSaving(false);
++    }
++  };
++
+   const handleCreateDepartment = async () => {
+     if (!deptForm.name || !deptForm.code) {
+       toast.error("Veuillez remplir tous les champs requis");
+@@ -426,35 +466,36 @@ export default function AdministrationPage() {
+               <CardContent className="space-y-6">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+-                    <Label>Taille maximale des fichiers</Label>
+-                    <Input value="50 MB" disabled />
++                    <Label>Taille maximale des fichiers (Mo)</Label>
++                    <Input
++                      value={settings.max_file_size || "50"}
++                      onChange={(e) => setSettings({ ...settings, max_file_size: e.target.value })}
++                    />
+                   </div>
+                   <div className="space-y-2">
+-                    <Label>Durée de rétention par défaut</Label>
+-                    <Input value="10 ans" disabled />
++                    <Label>Durée de rétention par défaut (années)</Label>
++                    <Input
++                      value={settings.default_retention_years || "10"}
++                      onChange={(e) => setSettings({ ...settings, default_retention_years: e.target.value })}
++                    />
+                   </div>
+                   <div className="space-y-2">
+-                    <Label>Algorithme de hachage</Label>
+-                    <Input value="SHA-256" disabled />
++                    <Label>Types MIME autorisés</Label>
++                    <Input
++                      value={settings.allowed_mime_types || ""}
++                      onChange={(e) => setSettings({ ...settings, allowed_mime_types: e.target.value })}
++                      placeholder="application/pdf,image/png,..."
++                    />
+                   </div>
+                   <div className="space-y-2">
+-                    <Label>Rétention des sessions</Label>
+-                    <Input value="24 heures" disabled />
+-                  </div>
+-                </div>
+-                <div className="space-y-2">
+-                  <Label>Types de fichiers autorisés</Label>
+-                  <div className="flex flex-wrap gap-2">
+-                    {["PDF", "DOC", "DOCX", "XLS", "XLSX", "PNG", "JPG"].map((type) => (
+-                      <Badge key={type} variant="secondary">{type}</Badge>
+-                    ))}
++                    <Label>Algorithme de hachage</Label>
++                    <Input value="SHA-256" disabled />
+                   </div>
+                 </div>
+-                <Separator />
+                 <div className="flex items-center gap-2">
+                   <Key className="h-4 w-4 text-muted-foreground" />
+                   <p className="text-sm text-muted-foreground">
+-                    Les paramètres de sécurité sont gérés par l&apos;administrateur système
++                    Les paramètres sont sauvegardés en base de données et appliqués immédiatement
+                   </p>
+                 </div>
+               </CardContent>
+@@ -471,23 +512,42 @@ export default function AdministrationPage() {
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label>Nom de l&apos;institution</Label>
+-                    <Input value="ISIPA" disabled />
++                    <Input
++                      value={settings.institution_name || "ISIPA"}
++                      onChange={(e) => setSettings({ ...settings, institution_name: e.target.value })}
++                    />
+                   </div>
+                   <div className="space-y-2">
+-                    <Label>Nom complet</Label>
+-                    <Input value="Institut Supérieur d'Informatique, Programmation et Analyse" disabled />
++                    <Label> Nom complet</Label>
++                    <Input
++                      value={settings.institution_full_name || "Institut Supérieur Pédagogique d'Application"}
++                      onChange={(e) => setSettings({ ...settings, institution_full_name: e.target.value })}
++                    />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Ville</Label>
+-                    <Input value="Kinshasa" disabled />
++                    <Input
++                      value={settings.institution_city || "Kinshasa"}
++                      onChange={(e) => setSettings({ ...settings, institution_city: e.target.value })}
++                    />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Pays</Label>
+-                    <Input value="République Démocratique du Congo" disabled />
++                    <Input
++                      value={settings.institution_country || "République Démocratique du Congo"}
++                      onChange={(e) => setSettings({ ...settings, institution_country: e.target.value })}
++                    />
+                   </div>
+                 </div>
+               </CardContent>
+             </Card>
++
++            <div className="flex justify-end">
++              <Button onClick={handleSaveSettings} disabled={settingsSaving} className="gradient-teal text-white hover:opacity-90">
++                {settingsSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
++                Sauvegarder les paramètres
++              </Button>
++            </div>
+           </TabsContent>
+         </Tabs>
+       </div>
+diff --git a/src/app/(dashboard)/documents/[id]/page.tsx b/src/app/(dashboard)/documents/[id]/page.tsx
+index a4bc655..390ad62 100755
+--- a/src/app/(dashboard)/documents/[id]/page.tsx
++++ b/src/app/(dashboard)/documents/[id]/page.tsx
+@@ -27,6 +27,9 @@ import {
+   History,
+   Eye,
+   Lock,
++  Send,
++  Upload,
++  Loader2,
+ } from "lucide-react";
+ 
+ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+@@ -35,6 +38,10 @@ import { Badge } from "@/components/ui/badge";
+ import { Skeleton } from "@/components/ui/skeleton";
+ import { Separator } from "@/components/ui/separator";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
++import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import { Textarea } from "@/components/ui/textarea";
+ 
+ const statusColors: Record<string, string> = {
+   DRAFT: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+@@ -99,6 +106,10 @@ const actionLabels: Record<string, string> = {
+ export default function DocumentDetailPage() {
+   const [document, setDocument] = useState<any>(null);
+   const [loading, setLoading] = useState(true);
++  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
++  const [versionFile, setVersionFile] = useState<File | null>(null);
++  const [versionChangeLog, setVersionChangeLog] = useState("");
++  const [uploadingVersion, setUploadingVersion] = useState(false);
+   const { data: session } = useSession();
+   const router = useRouter();
+   const params = useParams();
+@@ -145,9 +156,44 @@ export default function DocumentDetailPage() {
+     }
+   };
+ 
++  const handleUploadVersion = async () => {
++    if (!versionFile) {
++      toast.error("Veuillez sélectionner un fichier");
++      return;
++    }
++    setUploadingVersion(true);
++    try {
++      const formData = new FormData();
++      formData.append("file", versionFile);
++      formData.append("changeLog", versionChangeLog);
++
++      const res = await fetch(`/api/documents/${id}/versions`, {
++        method: "POST",
++        body: formData,
++      });
++
++      if (res.ok) {
++        toast.success("Nouvelle version ajoutée avec succès");
++        setVersionDialogOpen(false);
++        setVersionFile(null);
++        setVersionChangeLog("");
++        fetchDocument();
++      } else {
++        const error = await res.json();
++        toast.error(error.error || "Erreur");
++      }
++    } catch (error) {
++      toast.error("Erreur serveur");
++    } finally {
++      setUploadingVersion(false);
++    }
++  };
++
+   const userRole = (session?.user as any)?.role || "VIEWER";
+   const canArchive = ["ADMIN", "ARCHIVIST", "DIRECTOR"].includes(userRole);
+   const canApprove = ["ADMIN", "DIRECTOR"].includes(userRole);
++  const canSubmit = ["ADMIN", "SECRETARY", "DIRECTOR"].includes(userRole);
++  const canEdit = ["ADMIN", "SECRETARY", "DIRECTOR"].includes(userRole);
+ 
+   if (loading) {
+     return (
+@@ -195,6 +241,18 @@ export default function DocumentDetailPage() {
+                 Restaurer
+               </Button>
+             )}
++            {canSubmit && document.status === "DRAFT" && (
++              <Button size="sm" className="gradient-teal text-white hover:opacity-90" onClick={() => handleAction("submit")}>
++                <Send className="h-4 w-4 mr-2" />
++                Soumettre pour révision
++              </Button>
++            )}
++            {canSubmit && document.status === "REJECTED" && (
++              <Button size="sm" variant="outline" onClick={() => handleAction("submit")}>
++                <Send className="h-4 w-4 mr-2" />
++                Resoumettre
++              </Button>
++            )}
+             {canApprove && document.status === "PENDING_REVIEW" && (
+               <>
+                 <Button size="sm" className="gradient-teal text-white hover:opacity-90" onClick={() => handleAction("approve")}>
+@@ -207,6 +265,12 @@ export default function DocumentDetailPage() {
+                 </Button>
+               </>
+             )}
++            {canApprove && document.status === "APPROVED" && (
++              <Button size="sm" className="gradient-teal text-white hover:opacity-90" onClick={() => handleAction("publish")}>
++                <CheckCircle className="h-4 w-4 mr-2" />
++                Publier
++              </Button>
++            )}
+           </div>
+         </div>
+ 
+@@ -375,6 +439,73 @@ export default function DocumentDetailPage() {
+               <TabsContent value="versions">
+                 <Card>
+                   <CardContent className="p-0">
++                    {canEdit && (
++                      <div className="p-4 border-b flex items-center justify-between">
++                        <p className="text-sm text-muted-foreground">
++                          Version actuelle : v{document.version}
++                        </p>
++                        <Dialog open={versionDialogOpen} onOpenChange={setVersionDialogOpen}>
++                          <DialogTrigger asChild>
++                            <Button size="sm" variant="outline">
++                              <Upload className="h-4 w-4 mr-2" />
++                              Nouvelle version
++                            </Button>
++                          </DialogTrigger>
++                          <DialogContent className="sm:max-w-md">
++                            <DialogHeader>
++                              <DialogTitle>Ajouter une nouvelle version</DialogTitle>
++                              <DialogDescription>
++                                Téléchargez un nouveau fichier pour ce document. La version actuelle sera archivée.
++                              </DialogDescription>
++                            </DialogHeader>
++                            <div className="space-y-4 mt-4">
++                              <div className="space-y-2">
++                                <Label>Fichier *</Label>
++                                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer relative">
++                                  <input
++                                    type="file"
++                                    className="absolute inset-0 opacity-0 cursor-pointer"
++                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg"
++                                    onChange={(e) => {
++                                      const f = e.target.files?.[0];
++                                      if (f) setVersionFile(f);
++                                    }}
++                                  />
++                                  {versionFile ? (
++                                    <div className="flex items-center gap-2 justify-center">
++                                      <FileText className="h-5 w-5 text-primary" />
++                                      <span className="text-sm font-medium">{versionFile.name}</span>
++                                    </div>
++                                  ) : (
++                                    <p className="text-sm text-muted-foreground">Cliquez pour sélectionner un fichier</p>
++                                  )}
++                                </div>
++                              </div>
++                              <div className="space-y-2">
++                                <Label>Journal des modifications</Label>
++                                <Textarea
++                                  placeholder="Décrivez les modifications apportées..."
++                                  value={versionChangeLog}
++                                  onChange={(e) => setVersionChangeLog(e.target.value)}
++                                />
++                              </div>
++                              <div className="flex justify-end gap-2">
++                                <Button variant="outline" onClick={() => setVersionDialogOpen(false)} disabled={uploadingVersion}>
++                                  Annuler
++                                </Button>
++                                <Button onClick={handleUploadVersion} disabled={uploadingVersion} className="gradient-teal text-white hover:opacity-90">
++                                  {uploadingVersion ? (
++                                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Envoi...</>
++                                  ) : (
++                                    <><Upload className="h-4 w-4 mr-2" /> Télécharger</>
++                                  )}
++                                </Button>
++                              </div>
++                            </div>
++                          </DialogContent>
++                        </Dialog>
++                      </div>
++                    )}
+                     {document.versions?.length === 0 ? (
+                       <div className="p-8 text-center text-muted-foreground">
+                         Version unique — aucun historique de version
+@@ -389,6 +520,7 @@ export default function DocumentDetailPage() {
+                                 <p className="text-sm font-medium">{v.fileName}</p>
+                                 <p className="text-xs text-muted-foreground">
+                                   {(v.fileSize / 1024 / 1024).toFixed(2)} MB · Hash: {v.fileHash.substring(0, 16)}...
++                                  {v.changeLog && ` · ${v.changeLog}`}
+                                 </p>
+                               </div>
+                             </div>
+diff --git a/src/app/(dashboard)/documents/page.tsx b/src/app/(dashboard)/documents/page.tsx
+index 74c77c2..446f22c 100755
+--- a/src/app/(dashboard)/documents/page.tsx
++++ b/src/app/(dashboard)/documents/page.tsx
+@@ -26,6 +26,7 @@ import {
+   X,
+   File,
+   Loader2,
++  Send,
+ } from "lucide-react";
+ 
+ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+@@ -659,6 +660,16 @@ export default function DocumentsPage() {
+                             <RotateCcw className="h-4 w-4 mr-2" /> Restaurer
+                           </DropdownMenuItem>
+                         )}
++                        {canCreate && doc.status === "DRAFT" && (
++                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAction(doc.id, "submit"); }}>
++                            <Send className="h-4 w-4 mr-2" /> Soumettre pour révision
++                          </DropdownMenuItem>
++                        )}
++                        {canCreate && doc.status === "REJECTED" && (
++                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAction(doc.id, "submit"); }}>
++                            <Send className="h-4 w-4 mr-2" /> Resoumettre
++                          </DropdownMenuItem>
++                        )}
+                         {canApprove && doc.status === "PENDING_REVIEW" && (
+                           <>
+                             <DropdownMenuSeparator />
+@@ -670,6 +681,11 @@ export default function DocumentsPage() {
+                             </DropdownMenuItem>
+                           </>
+                         )}
++                        {canApprove && doc.status === "APPROVED" && (
++                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAction(doc.id, "publish"); }}>
++                            <CheckCircle className="h-4 w-4 mr-2" /> Publier
++                          </DropdownMenuItem>
++                        )}
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                   </div>
+diff --git a/src/app/api/documents/[id]/submit/route.ts b/src/app/api/documents/[id]/submit/route.ts
+new file mode 100644
+index 0000000..f2e2916
+--- /dev/null
++++ b/src/app/api/documents/[id]/submit/route.ts
+@@ -0,0 +1,66 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getServerSession } from "next-auth";
++import { authOptions } from "@/lib/auth";
++import { db } from "@/lib/db";
++import { canTransition } from "@/lib/workflow";
++import { DOCUMENT_PERMISSIONS, hasPermission } from "@/lib/permissions";
++
++export async function POST(
++  req: NextRequest,
++  { params }: { params: Promise<{ id: string }> }
++) {
++  try {
++    const session = await getServerSession(authOptions);
++    if (!session?.user) {
++      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
++    }
++
++    const userRole = (session.user as any).role;
++    if (!hasPermission(DOCUMENT_PERMISSIONS.CREATE, userRole)) {
++      return NextResponse.json({ error: "Permissions insuffisantes" }, { status: 403 });
++    }
++
++    const { id } = await params;
++
++    const document = await db.document.findUnique({ where: { id } });
++    if (!document) {
++      return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
++    }
++
++    // Validate workflow transition: DRAFT → PENDING_REVIEW
++    const transitionResult = canTransition(document.status, "PENDING_REVIEW", userRole);
++    if (!transitionResult.allowed) {
++      return NextResponse.json(
++        { error: transitionResult.reason || `Transition invalide: ${document.status} → PENDING_REVIEW` },
++        { status: 400 }
++      );
++    }
++
++    const updated = await db.document.update({
++      where: { id },
++      data: { status: "PENDING_REVIEW" },
++    });
++
++    await db.auditLog.create({
++      data: {
++        action: "UPDATE",
++        entityType: "Document",
++        entityId: id,
++        details: JSON.stringify({
++          title: document.title,
++          reference: document.reference,
++          previousStatus: document.status,
++          newStatus: "PENDING_REVIEW",
++          action: "submit_for_review",
++        }),
++        userId: (session.user as any).id,
++        documentId: id,
++      },
++    });
++
++    return NextResponse.json(updated);
++  } catch (error) {
++    console.error("Error submitting document for review:", error);
++    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
++  }
++}
+diff --git a/src/app/api/documents/[id]/versions/route.ts b/src/app/api/documents/[id]/versions/route.ts
+new file mode 100644
+index 0000000..3feb434
+--- /dev/null
++++ b/src/app/api/documents/[id]/versions/route.ts
+@@ -0,0 +1,110 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getServerSession } from "next-auth";
++import { authOptions } from "@/lib/auth";
++import { db } from "@/lib/db";
++import { DOCUMENT_PERMISSIONS, hasPermission } from "@/lib/permissions";
++import { createHash } from "crypto";
++import { writeFile, mkdir } from "fs/promises";
++import path from "path";
++
++export async function POST(
++  req: NextRequest,
++  { params }: { params: Promise<{ id: string }> }
++) {
++  try {
++    const session = await getServerSession(authOptions);
++    if (!session?.user) {
++      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
++    }
++
++    const userRole = (session.user as any).role;
++    if (!hasPermission(DOCUMENT_PERMISSIONS.UPDATE, userRole)) {
++      return NextResponse.json({ error: "Permissions insuffisantes" }, { status: 403 });
++    }
++
++    const { id } = await params;
++
++    const document = await db.document.findUnique({ where: { id } });
++    if (!document) {
++      return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
++    }
++
++    const formData = await req.formData();
++    const file = formData.get("file") as File | null;
++    const changeLog = formData.get("changeLog") as string | null;
++
++    if (!file) {
++      return NextResponse.json({ error: "Fichier requis" }, { status: 400 });
++    }
++
++    // Validate file size (50MB max)
++    if (file.size > 50 * 1024 * 1024) {
++      return NextResponse.json({ error: "Fichier trop volumineux (max 50 Mo)" }, { status: 400 });
++    }
++
++    // Read file buffer
++    const buffer = Buffer.from(await file.arrayBuffer());
++
++    // Compute SHA-256 hash
++    const fileHash = createHash("sha256").update(buffer).digest("hex");
++
++    // Save new version file
++    const uploadsDir = path.join(process.cwd(), "uploads");
++    await mkdir(uploadsDir, { recursive: true });
++    const versionNum = document.version + 1;
++    const ext = path.extname(file.name);
++    const versionFileName = `${path.parse(document.fileName).name}_v${versionNum}${ext}`;
++    const versionFilePath = path.join(uploadsDir, versionFileName);
++    await writeFile(versionFilePath, buffer);
++
++    // Create DocumentVersion record
++    const version = await db.documentVersion.create({
++      data: {
++        documentId: id,
++        version: versionNum,
++        filePath: versionFilePath,
++        fileName: versionFileName,
++        fileSize: file.size,
++        fileHash,
++        changeLog: changeLog || `Version ${versionNum}`,
++        createdBy: (session.user as any).id,
++      },
++    });
++
++    // Update document with new version info and reset to DRAFT
++    const updated = await db.document.update({
++      where: { id },
++      data: {
++        version: versionNum,
++        filePath: versionFilePath,
++        fileName: versionFileName,
++        fileSize: file.size,
++        mimeType: file.type,
++        fileHash,
++        status: "DRAFT", // New version starts as draft
++      },
++    });
++
++    await db.auditLog.create({
++      data: {
++        action: "UPDATE",
++        entityType: "Document",
++        entityId: id,
++        details: JSON.stringify({
++          title: document.title,
++          reference: document.reference,
++          action: "new_version",
++          newVersion: versionNum,
++          changeLog: changeLog || `Version ${versionNum}`,
++        }),
++        userId: (session.user as any).id,
++        documentId: id,
++      },
++    });
++
++    return NextResponse.json({ document: updated, version });
++  } catch (error) {
++    console.error("Error uploading new version:", error);
++    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
++  }
++}
+-- 
+2.47.3
+

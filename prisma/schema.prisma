@@ -1,0 +1,418 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ORGANIZATION TYPES ============
+enum OrganizationType {
+  UNIVERSITY
+  HOSPITAL
+  COMPANY
+  GOVERNMENT
+  SME
+  INSTITUTION
+  NGO
+  LAW_FIRM
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+  CHURNED
+}
+
+// ============ RBAC ROLES (14+ roles) ============
+enum Role {
+  SUPER_ADMIN
+  ORG_ADMIN
+  MANAGER
+  USER
+  VIEWER
+  DEAN
+  PROFESSOR
+  DOCTOR
+  NURSE
+  LAWYER
+  PARALEGAL
+  CFO
+  HR_MANAGER
+  CIVIL_SERVANT
+}
+
+// ============ ORGANIZATION ============
+model Organization {
+  id              String             @id @default(cuid())
+  name            String
+  slug            String             @unique
+  code            String             @unique
+  type            OrganizationType
+  status          OrganizationStatus @default(TRIAL)
+  plan            SubscriptionPlan   @default(FREE)
+
+  // Branding
+  logo            String?
+  primaryColor    String             @default("#0d9488")
+  accentColor     String?
+
+  // Settings (JSON)
+  settings        String             @default("{}")
+
+  // Subscription
+  trialEndsAt     DateTime?
+  subscriptionEndsAt DateTime?
+  maxUsers        Int                @default(10)
+  maxStorage      Int                @default(1073741824)
+
+  // Timestamps
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  // Relations
+  users           User[]
+  departments     Department[]
+  documents       Document[]
+  modules         OrganizationModule[]
+  workflows       Workflow[]
+  subscriptions   Subscription[]
+  auditLogs       AuditLog[]
+}
+
+// ============ USER ============
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String
+  password       String
+  role           Role         @default(VIEWER)
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Department
+  departmentId   String?
+  department     Department?  @relation(fields: [departmentId], references: [id])
+
+  // Status
+  isActive       Boolean      @default(true)
+  lastLogin      DateTime?
+
+  // Timestamps
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  documents      Document[]
+  auditLogs      AuditLog[]
+  accessLogs     AccessLog[]
+  notifications  Notification[]
+}
+
+// ============ DEPARTMENT ============
+model Department {
+  id             String       @id @default(cuid())
+  name           String
+  code           String
+  description    String?
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  // Timestamps
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  users          User[]
+  documents      Document[]
+
+  @@unique([organizationId, code])
+}
+
+// ============ DOCUMENT ============
+enum DocumentType {
+  ACADEMIC_RECORD
+  ADMINISTRATIVE
+  FINANCIAL
+  CORRESPONDENCE
+  REPORT
+  CONTRACT
+  CERTIFICATE
+  MEMO
+  POLICY
+  MEDICAL_RECORD
+  LEGAL_BRIEF
+  INVOICE
+  PROPOSAL
+  OTHER
+}
+
+enum DocumentStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+  REJECTED
+}
+
+enum Classification {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+model Document {
+  id              String         @id @default(cuid())
+  title           String
+  reference       String         @unique
+  description     String?
+  type            DocumentType
+  status          DocumentStatus @default(DRAFT)
+  classification  Classification @default(INTERNAL)
+
+  // File info
+  filePath        String
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  fileHash        String
+
+  // Versioning
+  version         Int            @default(1)
+  tags            String         @default("")
+  metadata        String?
+
+  // Multi-tenant
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+
+  // Relations
+  authorId        String
+  author          User           @relation(fields: [authorId], references: [id])
+  departmentId    String
+  department      Department     @relation(fields: [departmentId], references: [id])
+
+  // Workflow
+  workflowStateId String?
+  workflowState   WorkflowState? @relation(fields: [workflowStateId], references: [id])
+
+  // Archive
+  isArchived      Boolean        @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
+  archiveRef      String?
+  retentionPeriod Int?
+  expiresAt       DateTime?
+
+  // Timestamps
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  versions        DocumentVersion[]
+  auditLogs       AuditLog[]
+  accessLogs      AccessLog[]
+}
+
+// ============ DOCUMENT VERSION ============
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id])
+  version    Int
+  filePath   String
+  fileName   String
+  fileSize   Int
+  fileHash   String
+  changeLog  String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+}
+
+// ============ WORKFLOW ENGINE ============
+model Workflow {
+  id             String           @id @default(cuid())
+  name           String
+  description    String?
+  isActive       Boolean          @default(true)
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+
+  // Config
+  initialStateId String?
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  states         WorkflowState[]
+  transitions    WorkflowTransition[]
+}
+
+model WorkflowState {
+  id           String       @id @default(cuid())
+  workflowId   String
+  workflow     Workflow     @relation(fields: [workflowId], references: [id])
+  name         String
+  isInitial    Boolean      @default(false)
+  isFinal      Boolean      @default(false)
+  color        String       @default("#6b7280")
+  order        Int          @default(0)
+
+  // Relations
+  documents        Document[]
+  fromTransitions  WorkflowTransition[] @relation("FromTransitions")
+  toTransitions    WorkflowTransition[] @relation("ToTransitions")
+}
+
+model WorkflowTransition {
+  id             String        @id @default(cuid())
+  workflowId     String
+  workflow       Workflow      @relation(fields: [workflowId], references: [id])
+  fromStateId    String
+  fromState      WorkflowState @relation("FromTransitions", fields: [fromStateId], references: [id])
+  toStateId      String
+  toState        WorkflowState @relation("ToTransitions", fields: [toStateId], references: [id])
+  name           String
+  allowedRoles   String        @default("[]")
+  condition      String?
+}
+
+// ============ MODULE ENGINE ============
+enum ModuleStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+model OrganizationModule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  moduleKey      String
+  name           String
+  description    String?
+  status         ModuleStatus @default(INACTIVE)
+  config         String       @default("{}")
+  activatedAt    DateTime?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, moduleKey])
+}
+
+// ============ SUBSCRIPTION/BILLING ============
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIAL
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  organizationId  String
+  organization    Organization       @relation(fields: [organizationId], references: [id])
+  plan            SubscriptionPlan
+  status          SubscriptionStatus @default(TRIAL)
+  currentPeriodStart DateTime
+  currentPeriodEnd  DateTime
+  amount          Float              @default(0)
+  currency        String             @default("USD")
+  stripeSessionId String?
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+// ============ AUDIT LOG ============
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  DOWNLOAD
+  SHARE
+  APPROVE
+  REJECT
+  LOGIN
+  LOGOUT
+  MODULE_ACTIVATE
+  MODULE_SUSPEND
+  WORKFLOW_EXECUTE
+  ORGANIZATION_CREATE
+  ORGANIZATION_SUSPEND
+}
+
+model AuditLog {
+  id             String      @id @default(cuid())
+  action         AuditAction
+  entityType     String
+  entityId       String
+  details        String
+
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  documentId     String?
+  document       Document?   @relation(fields: [documentId], references: [id])
+
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime    @default(now())
+}
+
+// ============ ACCESS LOG ============
+model AccessLog {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+
+// ============ NOTIFICATION ============
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  title      String
+  message    String
+  type       String   @default("info")
+  isRead     Boolean  @default(false)
+  link       String?
+  createdAt  DateTime @default(now())
+}
+
+// ============ SYSTEM SETTINGS ============
+model SystemSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
