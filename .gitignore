@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -50,5 +51,26 @@ test
 prompt
 
 server.log
-# Skills directory
+
+# Skills directory (not part of the application)
 /skills/
+
+# Database (should not be committed to production repo)
+/db/*.db
+/db/*.db-journal
+
+# Examples directory (not part of the application)
+/examples/
+
+# Scripts output
+scripts/output/
+
+# Docker volumes
+docker-data/
+
+# Backup files
+*.bak
+*.backup
+
+# Worklog
+worklog.md
