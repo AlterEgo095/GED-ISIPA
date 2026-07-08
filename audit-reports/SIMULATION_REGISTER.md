@@ -1,7 +1,7 @@
 # SIMULATION REGISTER — GED-ISIPA
 
 **Date**: 2026-07-08  
-**Dernière mise à jour**: 2026-07-08 — Phase 12 corrections finales  
+**Dernière mise à jour**: 2026-07-08 — Blockers production corrigés  
 **Total findings**: 26 simulations identifiées
 
 ---
@@ -13,8 +13,8 @@
 | 1 | Password storage | auth.ts:69 | Plaintext comparison `user.password !== credentials.password` | ✅ **Corrigé** — bcrypt.compare() |
 | 2 | Password creation | users/route.ts:82 | Plaintext storage `password, // In production, hash with bcrypt` | ✅ **Corrigé** — bcrypt.hash() |
 | 3 | NEXTAUTH_SECRET | .env:2 | Valeur séquentielle prévisible `a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6` | ✅ **Corrigé** — crypto-random 48 chars |
-| 4 | File storage | documents/route.ts:82-85 | fileSize=0, mimeType='application/octet-stream', fileHash='' | ❌ Non corrigé — nécessite implémentation S3/MinIO |
-| 5 | File upload | document-upload.tsx | Client-side file input, pas de multipart server-side | ❌ Non corrigé — nécessite API upload multipart |
+| 4 | File storage | storage.ts | fileSize=0, mimeType='application/octet-stream', fileHash='' | ✅ **Corrigé** — storage.ts + SHA-256 hash + MIME whitelist |
+| 5 | File upload | upload/route.ts | Client-side file input, pas de multipart server-side | ✅ **Corrigé** — multipart/form-data API + streaming download |
 | 6 | Docker infrastructure | docker-compose.yml | Redis, MinIO, PostgreSQL déclarés mais non câblés | ❌ Non corrigé — infrastructure à provisionner |
 | 7 | Stripe billing | subscription model | stripeSessionId field sans code Stripe SDK | ❌ Non corrigé — nécessite intégration Stripe |
 | 8 | Seed credentials | seed.ts:34 | Tous comptes avec même mot de passe faible 'admin123' | ✅ **Corrigé** — bcrypt + mdp fort 'Admin@2024!' |
@@ -29,8 +29,8 @@
 | 12 | Security headers | next.config.ts | Aucun header sécurité configuré | ✅ **Corrigé** — CSP, HSTS, X-Frame-Options, etc. |
 | 13 | Health check | health/route.ts | Retourne toujours {status:'ok'} sans vérifier | ✅ **Corrigé** — vérifie DB + stockage |
 | 14 | Workflow org isolation | workflows/[id]/route.ts:46 | PUT sans vérifier organizationId | ✅ **Corrigé** — findFirst + orgId |
-| 15 | Email delivery | Aucun fichier | Zero intégration SMTP | ❌ Non corrigé — nécessite service email |
-| 16 | Notification triggers | Aucun fichier | Aucun code ne crée de notifications | ❌ Non corrigé — nécessite service de notifications |
+| 15 | Email delivery | email.ts | Zero intégration SMTP | ✅ **Corrigé** — nodemailer + templates HTML + console fallback |
+| 16 | Notification triggers | Aucun fichier | Aucun code ne crée de notifications | ❌ Non corrigé — nécessite service de notifications temps réel |
 
 ## S2 — MEDIUM RISK SIMULATION
 
@@ -63,20 +63,16 @@
 
 | Statut | Count | Percentage |
 |--------|:-----:|:----------:|
-| ✅ Corrigé | **17** | **65%** |
-| ❌ Non corrigé | **8** | **31%** |
-| ⚠️ Partiel | **0** | **0%** |
-| ✅ Acceptable (S0) | **1** | **4%** |
+| ✅ Corrigé | **20** | **77%** |
+| ❌ Non corrigé | **5** | **19%** |
+| ✅ Acceptable (S0-S1) | **1** | **4%** |
 
-## Détail des 8 non-corrigés restants
+## Détail des 5 non-corrigés restants
 
-Les 8 simulations non corrigées relèvent toutes de **fonctionnalités à implémenter** (infrastructure tierce), pas de bugs de code :
+Les simulations restantes relèvent d'**infrastructure tierce** ou de **choix architecturaux** :
 
-1. **File storage/upload** (S4 #4-5) → Nécessite MinIO/S3 + API multipart
-2. **Docker infrastructure** (S4 #6) → Nécessite docker-compose avec Redis, PostgreSQL, MinIO
-3. **Stripe billing** (S4 #7) → Nécessite intégration Stripe SDK
-4. **Email delivery** (S3 #15) → Nécessite service SMTP (Resend/SendGrid)
-5. **Notification triggers** (S3 #16) → Nécessite worker de notifications
-6. **CORS** (S2 #19) → Acceptable en same-origin pour MVP
-7. **Cookie SameSite** (S2 #20) → Requis pour HTTPS cross-domain preview
-8. **Error handling** (S2 #21) → Logging en place, structuration à améliorer
+1. **Docker infrastructure** (S4 #6) → docker-compose avec Redis, PostgreSQL, MinIO à provisionner
+2. **Stripe billing** (S4 #7) → Intégration Stripe SDK pour paiements réels
+3. **Notification triggers** (S3 #16) → WebSocket/SSE pour notifications temps réel
+4. **CORS** (S2 #19) → Acceptable en same-origin pour MVP
+5. **Cookie SameSite** (S2 #20) → Requis pour HTTPS cross-domain preview (SameSite=none + Secure)
