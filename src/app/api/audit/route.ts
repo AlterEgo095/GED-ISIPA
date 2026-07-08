@@ -21,8 +21,16 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '50')
   const action = searchParams.get('action') || ''
   const entityType = searchParams.get('entityType') || ''
+  const targetOrgId = searchParams.get('organizationId') || ''
 
-  const where: Record<string, unknown> = { organizationId: orgId }
+  // SUPER_ADMIN can see all orgs' logs; others are scoped to their own org
+  const where: Record<string, unknown> = {}
+  if (role !== 'SUPER_ADMIN') {
+    where.organizationId = orgId
+  } else if (targetOrgId) {
+    // SUPER_ADMIN can filter by specific org
+    where.organizationId = targetOrgId
+  }
   if (action) where.action = action
   if (entityType) where.entityType = entityType
 

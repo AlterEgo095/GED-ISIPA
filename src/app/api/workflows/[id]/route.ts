@@ -36,9 +36,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params
   const role = token.role as Role
+  const orgId = token.organizationId as string
 
   if (!hasPermission(role, 'workflows', 'update')) {
     return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
+  }
+
+  // Org isolation: verify workflow belongs to user's organization
+  const existing = await db.workflow.findFirst({ where: { id, organizationId: orgId } })
+  if (!existing) {
+    return NextResponse.json({ error: 'Workflow introuvable' }, { status: 404 })
   }
 
   try {
@@ -53,7 +60,35 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     })
 
     return NextResponse.json(workflow)
-  } catch {
+  } catch (error) {
+    console.error('Workflow update error:', error)
     return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  if (!token) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const { id } = await params
+  const role = token.role as Role
+  const orgId = token.organizationId as string
+
+  if (!hasPermission(role, 'workflows', 'delete')) {
+    return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
+  }
+
+  // Org isolation check
+  const existing = await db.workflow.findFirst({ where: { id, organizationId: orgId } })
+  if (!existing) {
+    return NextResponse.json({ error: 'Workflow introuvable' }, { status: 404 })
+  }
+
+  try {
+    await db.workflow.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Workflow delete error:', error)
+    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
   }
 }

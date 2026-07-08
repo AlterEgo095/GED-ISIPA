@@ -45,6 +45,13 @@ export async function PUT(request: NextRequest) {
     }
 
     if (body.notificationId) {
+      // Ownership validation: verify the notification belongs to the requesting user
+      const notification = await db.notification.findFirst({
+        where: { id: body.notificationId, userId },
+      })
+      if (!notification) {
+        return NextResponse.json({ error: 'Notification introuvable' }, { status: 404 })
+      }
       await db.notification.update({
         where: { id: body.notificationId },
         data: { isRead: true },
@@ -53,7 +60,8 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Action requise' }, { status: 400 })
-  } catch {
+  } catch (error) {
+    console.error('Notification update error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

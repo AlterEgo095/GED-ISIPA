@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (states && Array.isArray(states)) {
-      const stateRecords = []
+      const stateRecords: Record<string, any>[] = []
       for (let i = 0; i < states.length; i++) {
         const state = states[i]
         const created = await db.workflowState.create({
