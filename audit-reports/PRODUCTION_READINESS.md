@@ -1,7 +1,8 @@
 # PRODUCTION READINESS — GED-ISIPA / AEIP Enterprise Platform
 
 **Date**: 2026-07-08  
-**Verdict**: ⚠️ CONDITIONNEL — Corrections P0 appliquées, mais gaps fonctionnels majeurs persistent  
+**Dernière mise à jour**: 2026-07-08 — Phase 12 corrections finales  
+**Verdict**: ⚠️ CONDITIONNEL — Corrections P0/P1 appliquées, build OK, mais gaps fonctionnels persistent
 
 ---
 
@@ -9,14 +10,14 @@
 
 | Dimension | Score /10 | Status |
 |-----------|:---------:|--------|
-| **Global** | **5.2** | ⚠️ Conditionnel |
-| Frontend | 6.5 | ✅ Fonctionnel |
-| Backend API | 7.0 | ✅ Opérationnel |
-| Sécurité | 6.0 | ⚠️ P0 corrigés, P2 restants |
-| Administration | 5.5 | ⚠️ Partiellement fonctionnel |
-| Données | 7.0 | ✅ Schéma complet |
-| Tests | 1.0 | ❌ Aucun test automatisé |
-| Préparation VPS | 6.0 | ⚠️ Dockerfile créé, intégrations manquantes |
+| **Global** | **6.0** | ⚠️ Conditionnel |
+| Frontend | 7.0 | ✅ Fonctionnel |
+| Backend API | 7.5 | ✅ Opérationnel |
+| Sécurité | 7.0 | ✅ P0/P1 corrigés |
+| Administration | 6.5 | ⚠️ Partiellement fonctionnel |
+| Données | 7.5 | ✅ Schéma complet + seed |
+| Tests | 2.0 | ❌ Aucun test automatisé |
+| Préparation VPS | 7.0 | ✅ Dockerfile + .env.example + migration |
 
 ---
 
@@ -54,13 +55,18 @@
 - [x] Audit logging sur actions CRUD
 - [x] Health check vérifiant DB + stockage
 - [x] Security headers (CSP, HSTS, X-Frame-Options)
-- [x] Rate limiting basique (30/min auth, 100/min API)
+- [x] Rate limiting avec cleanup mémoire
+- [x] Zod validation sur routes critiques
+- [x] Dashboard stats avec requêtes DB réelles
 - [x] Dockerfile multi-stage
 - [x] .env.example documenté
 - [x] Prisma migration baseline
+- [x] NEXTAUTH_SECRET crypto-random 48 chars
+- [x] JWT refresh callback (rôle updates immédiats)
+- [x] Cookie sécurisés (httpOnly, Secure, SameSite=none)
+- [x] Git repo poussé sur GitHub (AlterEgo095/GED-ISIPA)
 
 ### ⚠️ Éléments Partiellement Opérationnels
-- [~] Dashboard stats (données réelles mais métriques limitées)
 - [~] Recherche (Prisma contains — pas de full-text)
 - [~] Billing (lecture seule, pas de paiement)
 - [~] Modules (activation/désactivation OK, mais certains sont des placeholders)
