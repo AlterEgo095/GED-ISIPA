@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Building2, Users, FileText, Workflow, Loader2 } from 'lucide-react'
 
 export default function SuperAdminDashboardPage() {
-  const [stats, setStats] = useState<Record<string, unknown> | null>(null)
+  const [stats, setStats] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,8 +21,8 @@ export default function SuperAdminDashboardPage() {
   }
 
   const s = stats?.stats as Record<string, number> || {}
-  const recentOrgs = (stats?.recentOrgs as Record<string, unknown>[]) || []
-  const orgsByType = (stats?.orgsByType as Record<string, unknown>[]) || []
+  const recentOrgs = (stats?.recentOrgs as Record<string, any>[]) || []
+  const orgsByType = (stats?.orgsByType as Record<string, any>[]) || []
 
   return (
     <div className="space-y-6">

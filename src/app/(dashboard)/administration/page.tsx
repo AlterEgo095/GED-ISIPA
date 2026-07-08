@@ -14,8 +14,8 @@ import { roleLabels, roleColors, organizationTypeLabels } from '@/lib/constants'
 import type { Role } from '@prisma/client'
 
 export default function AdministrationPage() {
-  const [users, setUsers] = useState<Record<string, unknown>[]>([])
-  const [departments, setDepartments] = useState<Record<string, unknown>[]>([])
+  const [users, setUsers] = useState<Record<string, any>[]>([])
+  const [departments, setDepartments] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(true)
   const [addUserOpen, setAddUserOpen] = useState(false)
 

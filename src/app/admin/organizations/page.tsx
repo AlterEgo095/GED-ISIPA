@@ -9,7 +9,7 @@ import { organizationTypeLabels, orgStatusLabels, planLabels } from '@/lib/const
 import type { OrganizationType, OrganizationStatus, SubscriptionPlan } from '@prisma/client'
 
 export default function SuperAdminOrganizationsPage() {
-  const [organizations, setOrganizations] = useState<Record<string, unknown>[]>([])
+  const [organizations, setOrganizations] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { LawFirmDashboard } from '@/components/dashboards/law-firm-dashboard'
 
 export default function LawFirmDashboardPage() {
-  const [data, setData] = useState<Record<string, unknown> | null>(null)
+  const [data, setData] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

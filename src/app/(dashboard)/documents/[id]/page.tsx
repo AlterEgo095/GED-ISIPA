@@ -13,7 +13,7 @@ import type { DocumentStatus, Classification, DocumentType } from '@prisma/clien
 export default function DocumentDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [document, setDocument] = useState<Record<string, unknown> | null>(null)
+  const [document, setDocument] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -46,10 +46,10 @@ export default function DocumentDetailPage() {
     return <div className="text-center py-12"><p className="text-muted-foreground">Document introuvable</p></div>
   }
 
-  const doc = document as Record<string, unknown>
+  const doc = document as Record<string, any>
   const author = doc.author as Record<string, string> | null
   const department = doc.department as Record<string, string> | null
-  const workflowState = doc.workflowState as Record<string, unknown> | null
+  const workflowState = doc.workflowState as Record<string, any> | null
 
   return (
     <div className="space-y-6">

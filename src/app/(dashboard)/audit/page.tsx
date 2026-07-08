@@ -10,7 +10,7 @@ import { actionLabels } from '@/lib/constants'
 import type { AuditAction } from '@prisma/client'
 
 export default function AuditPage() {
-  const [logs, setLogs] = useState<Record<string, unknown>[]>([])
+  const [logs, setLogs] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(true)
   const [filterAction, setFilterAction] = useState('all')
 

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Bell, CheckCheck } from 'lucide-react'
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Record<string, unknown>[]>([])
+  const [notifications, setNotifications] = useState<Record<string, any>[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
 

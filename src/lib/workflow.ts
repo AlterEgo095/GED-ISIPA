@@ -39,7 +39,7 @@ export async function createWorkflowFromConfig(
   })
 
   // Create states
-  const stateRecords = []
+  const stateRecords: Record<string, any>[] = []
   for (let i = 0; i < config.states.length; i++) {
     const stateConfig = config.states[i]
     const state = await db.workflowState.create({

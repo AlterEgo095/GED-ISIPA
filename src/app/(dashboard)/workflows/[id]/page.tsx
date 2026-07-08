@@ -11,7 +11,7 @@ import type { Role } from '@prisma/client'
 
 export default function WorkflowDetailPage() {
   const params = useParams()
-  const [workflow, setWorkflow] = useState<Record<string, unknown> | null>(null)
+  const [workflow, setWorkflow] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function WorkflowDetailPage() {
     return <div className="text-center py-12"><p className="text-muted-foreground">Workflow introuvable</p></div>
   }
 
-  const states = (workflow.states as Record<string, unknown>[])?.map(s => ({
+  const states = (workflow.states as Record<string, any>[])?.map(s => ({
     id: s.id as string,
     name: s.name as string,
     isInitial: s.isInitial as boolean,
@@ -45,7 +45,7 @@ export default function WorkflowDetailPage() {
     order: s.order as number,
   })) || []
 
-  const transitions = (workflow.transitions as Record<string, unknown>[])?.map(t => ({
+  const transitions = (workflow.transitions as Record<string, any>[])?.map(t => ({
     id: t.id as string,
     from: (t.fromState as Record<string, string>)?.name || '',
     to: (t.toState as Record<string, string>)?.name || '',

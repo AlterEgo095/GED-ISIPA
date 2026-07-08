@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { GovernmentDashboard } from '@/components/dashboards/government-dashboard'
 
 export default function GovernmentDashboardPage() {
-  const [data, setData] = useState<Record<string, unknown> | null>(null)
+  const [data, setData] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

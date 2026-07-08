@@ -10,7 +10,7 @@ import { statusLabels, statusColors, classificationLabels, classificationColors,
 import type { DocumentStatus, Classification, DocumentType } from '@prisma/client'
 
 export default function ArchivesPage() {
-  const [documents, setDocuments] = useState<Record<string, unknown>[]>([])
+  const [documents, setDocuments] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -19,7 +19,7 @@ export default function ArchivesPage() {
       .then(res => res.json())
       .then(data => {
         const allDocs = data.documents || []
-        setDocuments(allDocs.filter((d: Record<string, unknown>) => d.isArchived))
+        setDocuments(allDocs.filter((d: Record<string, any>) => d.isArchived))
       })
       .finally(() => setLoading(false))
   }, [])

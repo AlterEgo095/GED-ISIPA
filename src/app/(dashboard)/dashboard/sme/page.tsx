@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { SmeDashboard } from '@/components/dashboards/sme-dashboard'
 
 export default function SmeDashboardPage() {
-  const [data, setData] = useState<Record<string, unknown> | null>(null)
+  const [data, setData] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

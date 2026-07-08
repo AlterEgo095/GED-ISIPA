@@ -8,7 +8,7 @@ import { Workflow } from 'lucide-react'
 import Link from 'next/link'
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<Record<string, unknown>[]>([])
+  const [workflows, setWorkflows] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -50,8 +50,8 @@ export default function WorkflowsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {workflows.map((wf) => {
-            const states = wf.states as Record<string, unknown>[] | undefined
-            const transitions = wf.transitions as Record<string, unknown>[] | undefined
+            const states = wf.states as Record<string, any>[] | undefined
+            const transitions = wf.transitions as Record<string, any>[] | undefined
             return (
               <Card key={wf.id as string} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">

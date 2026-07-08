@@ -6,7 +6,7 @@ import { UniversityDashboard } from '@/components/dashboards/university-dashboar
 
 export default function UniversityDashboardPage() {
   const { user } = useAuth()
-  const [data, setData] = useState<Record<string, unknown> | null>(null)
+  const [data, setData] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

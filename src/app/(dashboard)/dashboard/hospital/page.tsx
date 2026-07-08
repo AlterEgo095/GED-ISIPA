@@ -6,7 +6,7 @@ import { HospitalDashboard } from '@/components/dashboards/hospital-dashboard'
 
 export default function HospitalDashboardPage() {
   const { user } = useAuth()
-  const [data, setData] = useState<Record<string, unknown> | null>(null)
+  const [data, setData] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { CompanyDashboard } from '@/components/dashboards/company-dashboard'
 
 export default function CompanyDashboardPage() {
-  const [data, setData] = useState<Record<string, unknown> | null>(null)
+  const [data, setData] = useState<Record<string, any> | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
