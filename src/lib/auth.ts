@@ -2,6 +2,7 @@ import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { db } from './db'
 import type { Role, OrganizationType } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 declare module 'next-auth' {
   interface Session {
@@ -65,8 +66,9 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Utilisateur introuvable ou inactif')
         }
 
-        // Simple password check (in production, use bcrypt)
-        if (user.password !== credentials.password) {
+        // Secure password comparison using bcrypt
+        const isValid = await bcrypt.compare(credentials.password, user.password)
+        if (!isValid) {
           throw new Error('Mot de passe incorrect')
         }
 
@@ -109,7 +111,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -119,6 +121,22 @@ export const authOptions: NextAuthOptions = {
         token.organizationType = user.organizationType
         token.organizationCode = user.organizationCode
         token.departmentId = user.departmentId
+      }
+      // Refresh role/org data from DB on session update to prevent stale permissions
+      if (trigger === 'update' && token.id) {
+        const freshUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          include: { organization: true },
+        })
+        if (freshUser) {
+          token.role = freshUser.role
+          token.organizationId = freshUser.organizationId
+          token.organizationName = freshUser.organization.name
+          token.organizationSlug = freshUser.organization.slug
+          token.organizationType = freshUser.organization.type
+          token.organizationCode = freshUser.organization.code
+          token.departmentId = freshUser.departmentId
+        }
       }
       return token
     },

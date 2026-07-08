@@ -1,11 +1,19 @@
 import { PrismaClient } from '@prisma/client'
 import { generateAEIPToken } from '../src/lib/token-engine'
 import { createWorkflowFromConfig, DEFAULT_WORKFLOW } from '../src/lib/workflow'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
+const SALT_ROUNDS = 12
+
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS)
+}
 
 async function main() {
   console.log('🌱 Début du seed...')
+
+  const defaultPassword = 'Admin@2024!'
 
   // First: create system organization (required by foreign key)
   const systemOrg = await prisma.organization.upsert({
@@ -24,14 +32,14 @@ async function main() {
     },
   })
 
-  // Then: create SUPER_ADMIN user linked to system org
+  // Then: create SUPER_ADMIN user linked to system org (hashed password)
   const superAdmin = await prisma.user.upsert({
     where: { email: 'superadmin@aeip.cd' },
     update: {},
     create: {
       email: 'superadmin@aeip.cd',
       name: 'Super Administrateur',
-      password: 'admin123',
+      password: await hashPassword(defaultPassword),
       role: 'SUPER_ADMIN',
       organizationId: systemOrg.id,
     },
@@ -65,15 +73,15 @@ async function main() {
     data: { name: 'Économie', code: 'ECO', description: 'Faculté d\'Économie', organizationId: isipa.id },
   })
 
-  // University users
+  // University users (hashed passwords)
   const uniAdmin = await prisma.user.create({
-    data: { email: 'admin@isipa.cd', name: 'Prof. Mukendi', password: 'admin123', role: 'ORG_ADMIN', organizationId: isipa.id, departmentId: deptSciences.id },
+    data: { email: 'admin@isipa.cd', name: 'Prof. Mukendi', password: await hashPassword(defaultPassword), role: 'ORG_ADMIN', organizationId: isipa.id, departmentId: deptSciences.id },
   })
   const dean = await prisma.user.create({
-    data: { email: 'dean@isipa.cd', name: 'Prof. Kabongo', password: 'admin123', role: 'DEAN', organizationId: isipa.id, departmentId: deptSciences.id },
+    data: { email: 'dean@isipa.cd', name: 'Prof. Kabongo', password: await hashPassword(defaultPassword), role: 'DEAN', organizationId: isipa.id, departmentId: deptSciences.id },
   })
   const professor = await prisma.user.create({
-    data: { email: 'prof@isipa.cd', name: 'Dr. Tshimanga', password: 'admin123', role: 'PROFESSOR', organizationId: isipa.id, departmentId: deptDroit.id },
+    data: { email: 'prof@isipa.cd', name: 'Dr. Tshimanga', password: await hashPassword(defaultPassword), role: 'PROFESSOR', organizationId: isipa.id, departmentId: deptDroit.id },
   })
 
   // University documents
@@ -160,15 +168,15 @@ async function main() {
     data: { name: 'Médecine Interne', code: 'MIN', description: 'Service de médecine interne', organizationId: hospital.id },
   })
 
-  // Hospital users
+  // Hospital users (hashed passwords)
   const hosAdmin = await prisma.user.create({
-    data: { email: 'admin@hopital.cd', name: 'Dr. Kalala', password: 'admin123', role: 'ORG_ADMIN', organizationId: hospital.id, departmentId: deptUrgence.id },
+    data: { email: 'admin@hopital.cd', name: 'Dr. Kalala', password: await hashPassword(defaultPassword), role: 'ORG_ADMIN', organizationId: hospital.id, departmentId: deptUrgence.id },
   })
   const doctor = await prisma.user.create({
-    data: { email: 'doctor@hopital.cd', name: 'Dr. Ngoie', password: 'admin123', role: 'DOCTOR', organizationId: hospital.id, departmentId: deptChirurgie.id },
+    data: { email: 'doctor@hopital.cd', name: 'Dr. Ngoie', password: await hashPassword(defaultPassword), role: 'DOCTOR', organizationId: hospital.id, departmentId: deptChirurgie.id },
   })
   const nurse = await prisma.user.create({
-    data: { email: 'nurse@hopital.cd', name: 'Mme. Ilunga', password: 'admin123', role: 'NURSE', organizationId: hospital.id, departmentId: deptUrgence.id },
+    data: { email: 'nurse@hopital.cd', name: 'Mme. Ilunga', password: await hashPassword(defaultPassword), role: 'NURSE', organizationId: hospital.id, departmentId: deptUrgence.id },
   })
 
   // Hospital documents
@@ -246,12 +254,12 @@ async function main() {
     data: { name: 'Budget', code: 'BDG', description: 'Direction du budget', organizationId: government.id },
   })
 
-  // Government users
+  // Government users (hashed passwords)
   const govAdmin = await prisma.user.create({
-    data: { email: 'admin@minplan.cd', name: 'M. Lomami', password: 'admin123', role: 'ORG_ADMIN', organizationId: government.id, departmentId: deptPlanification.id },
+    data: { email: 'admin@minplan.cd', name: 'M. Lomami', password: await hashPassword(defaultPassword), role: 'ORG_ADMIN', organizationId: government.id, departmentId: deptPlanification.id },
   })
   const civilServant = await prisma.user.create({
-    data: { email: 'agent@minplan.cd', name: 'Mme. Kashala', password: 'admin123', role: 'CIVIL_SERVANT', organizationId: government.id, departmentId: deptBudget.id },
+    data: { email: 'agent@minplan.cd', name: 'Mme. Kashala', password: await hashPassword(defaultPassword), role: 'CIVIL_SERVANT', organizationId: government.id, departmentId: deptBudget.id },
   })
 
   // Government documents
@@ -317,20 +325,21 @@ async function main() {
   }
 
   console.log('✅ Seed terminé avec succès!')
-  console.log(`\n📋 Comptes de test:`)
-  console.log(`  Super Admin: superadmin@aeip.cd / admin123`)
-  console.log(`  ISIPA Admin: admin@isipa.cd / admin123`)
-  console.log(`  ISIPA Doyen: dean@isipa.cd / admin123`)
-  console.log(`  ISIPA Prof:  prof@isipa.cd / admin123`)
-  console.log(`  Hôpital Admin: admin@hopital.cd / admin123`)
-  console.log(`  Hôpital Dr:   doctor@hopital.cd / admin123`)
-  console.log(`  Hôpital Inf:  nurse@hopital.cd / admin123`)
-  console.log(`  MinPlan Admin: admin@minplan.cd / admin123`)
-  console.log(`  MinPlan Agent: agent@minplan.cd / admin123`)
+  console.log(`\n📋 Comptes de test (mot de passe: ${defaultPassword}):`)
+  console.log(`  Super Admin: superadmin@aeip.cd`)
+  console.log(`  ISIPA Admin: admin@isipa.cd`)
+  console.log(`  ISIPA Doyen: dean@isipa.cd`)
+  console.log(`  ISIPA Prof:  prof@isipa.cd`)
+  console.log(`  Hôpital Admin: admin@hopital.cd`)
+  console.log(`  Hôpital Dr:   doctor@hopital.cd`)
+  console.log(`  Hôpital Inf:  nurse@hopital.cd`)
+  console.log(`  MinPlan Admin: admin@minplan.cd`)
+  console.log(`  MinPlan Agent: agent@minplan.cd`)
   console.log(`\n🔑 Codes organisation:`)
   console.log(`  ISIPA: ${uniToken}`)
   console.log(`  Hôpital: ${hosToken}`)
   console.log(`  MinPlan: ${govToken}`)
+  console.log(`\n⚠️  IMPORTANT: Change default passwords before production deployment!`)
 }
 
 main()
