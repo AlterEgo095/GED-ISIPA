@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
-import { hasPermission } from '@/lib/permissions'
+import { hasPermission, getRoleLevel } from '@/lib/permissions'
 import type { Role } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+
+const SALT_ROUNDS = 12
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -70,17 +73,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
     }
 
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères' }, { status: 400 })
+    }
+
     const existing = await db.user.findUnique({ where: { email } })
     if (existing) {
       return NextResponse.json({ error: 'Email déjà utilisé' }, { status: 409 })
     }
 
+    // Role escalation guard: cannot assign a role higher than your own
+    const assignedRole: Role = (newRole || 'USER') as Role
+    if (getRoleLevel(assignedRole) >= getRoleLevel(role)) {
+      return NextResponse.json({ error: 'Vous ne pouvez pas assigner un rôle égal ou supérieur au vôtre' }, { status: 403 })
+    }
+
+    // Hash password with bcrypt before storing
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
+
     const user = await db.user.create({
       data: {
         email,
         name,
-        password, // In production, hash with bcrypt
-        role: newRole || 'USER',
+        password: hashedPassword,
+        role: assignedRole,
         organizationId: token.organizationId as string,
         departmentId: departmentId || null,
       },
@@ -92,7 +108,8 @@ export async function POST(request: NextRequest) {
       name: user.name,
       role: user.role,
     }, { status: 201 })
-  } catch {
+  } catch (error) {
+    console.error('User creation error:', error)
     return NextResponse.json({ error: 'Erreur lors de la création' }, { status: 500 })
   }
 }
