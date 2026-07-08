@@ -118,6 +118,7 @@ model User {
   auditLogs      AuditLog[]
   accessLogs     AccessLog[]
   notifications  Notification[]
+  resets         PasswordReset[]
 }
 
 // ============ DEPARTMENT ============
@@ -408,6 +409,17 @@ model Notification {
   isRead     Boolean  @default(false)
   link       String?
   createdAt  DateTime @default(now())
+}
+
+// ============ PASSWORD RESET ============
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 // ============ SYSTEM SETTINGS ============

@@ -6,6 +6,7 @@ import { hasPermission, getRoleLevel } from '@/lib/permissions'
 import { createUserSchema, validateBody } from '@/lib/validation'
 import type { Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { sendWelcomeEmail } from '@/lib/email'
 
 const SALT_ROUNDS = 12
 
@@ -96,6 +97,13 @@ export async function POST(request: NextRequest) {
         organizationId: token.organizationId as string,
         departmentId: departmentId || null,
       },
+      include: { organization: { select: { name: true } } },
+    })
+
+    // Send welcome email (fire-and-forget — never blocks the response)
+    const orgName = user.organization?.name || 'AEIP'
+    sendWelcomeEmail(user.email, user.name, orgName, password).catch((err) => {
+      console.error('[users] Welcome email failed:', err)
     })
 
     return NextResponse.json({
