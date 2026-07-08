@@ -2,10 +2,25 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
-// Rate limiting store
+// Rate limiting store with periodic cleanup to prevent memory leaks
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>()
+const CLEANUP_INTERVAL = 5 * 60 * 1000 // Clean every 5 minutes
+const ENTRY_MAX_AGE = 60 * 60 * 1000 // Remove entries older than 1 hour
+let lastCleanup = Date.now()
+
+function cleanupRateLimitMap() {
+  const now = Date.now()
+  if (now - lastCleanup < CLEANUP_INTERVAL) return
+  lastCleanup = now
+  for (const [key, entry] of rateLimitMap) {
+    if (now - entry.lastReset > ENTRY_MAX_AGE) {
+      rateLimitMap.delete(key)
+    }
+  }
+}
 
 function checkRateLimit(key: string, limit: number = 10, windowMs: number = 60000): boolean {
+  cleanupRateLimitMap()
   const now = Date.now()
   const entry = rateLimitMap.get(key)
 

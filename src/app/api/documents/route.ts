@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
+import { createDocumentSchema, validateBody } from '@/lib/validation'
 import type { Role } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
@@ -58,11 +59,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { title, description, type, classification, departmentId, tags, metadata } = body
+    const validation = validateBody(createDocumentSchema, body)
+    if (validation.error) return validation.error
 
-    if (!title || !type || !departmentId) {
-      return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
-    }
+    const { title, description, type, classification, departmentId, tags, metadata } = validation.data
 
     const orgId = token.organizationId as string
     const userId = token.id as string

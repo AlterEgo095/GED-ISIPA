@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { hasPermission, getRoleLevel } from '@/lib/permissions'
+import { createUserSchema, validateBody } from '@/lib/validation'
 import type { Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
@@ -67,15 +68,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { email, name, password, role: newRole, departmentId } = body
+    const validation = validateBody(createUserSchema, body)
+    if (validation.error) return validation.error
 
-    if (!email || !name || !password) {
-      return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères' }, { status: 400 })
-    }
+    const { email, name, password, role: newRole, departmentId } = validation.data
 
     const existing = await db.user.findUnique({ where: { email } })
     if (existing) {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
+import type { DocumentType } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
       docsByStatus,
       docsByType,
       recentActivities,
+      typeSpecificDocs,
     ] = await Promise.all([
       db.document.count({ where: { organizationId: orgId, isArchived: false } }),
       db.document.count({ where: { organizationId: orgId, status: 'DRAFT', isArchived: false } }),
@@ -58,10 +60,12 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
         include: { user: { select: { name: true } } },
       }),
+      // Real type-specific document counts from DB instead of fabricated multipliers
+      getTypeSpecificDocCounts(orgId, orgType),
     ])
 
-    // Type-specific stats
-    const typeStats = getTypeSpecificStats(orgType, totalDocs, totalUsers)
+    // Real type-specific stats from actual DB data
+    const typeStats = buildTypeStats(orgType, typeSpecificDocs, totalUsers)
 
     return NextResponse.json({
       stats: {
@@ -85,41 +89,76 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getTypeSpecificStats(orgType: string, totalDocs: number, totalUsers: number) {
+/**
+ * Query real document counts by type for the organization,
+ * replacing fabricated multipliers with actual DB data.
+ */
+async function getTypeSpecificDocCounts(orgId: string, orgType: string): Promise<Record<string, number>> {
+  const typeMapping = getTypeMapping(orgType)
+  const docTypes = Object.keys(typeMapping) as DocumentType[]
+  const results = await db.document.groupBy({
+    by: ['type'],
+    where: { organizationId: orgId, isArchived: false, type: { in: docTypes } },
+    _count: { type: true },
+  })
+  const counts: Record<string, number> = {}
+  for (const r of results) {
+    const label = typeMapping[r.type]
+    if (label) counts[label] = (counts[label] || 0) + r._count.type
+  }
+  return counts
+}
+
+function getTypeMapping(orgType: string): Record<string, string> {
+  switch (orgType) {
+    case 'UNIVERSITY':
+      return { ACADEMIC_RECORD: 'labelEtudiants', REPORT: 'labelRecherches', CERTIFICATE: 'labelCours' }
+    case 'HOSPITAL':
+      return { MEDICAL_RECORD: 'labelPatients', ADMINISTRATIVE: 'labelConsultations', REPORT: 'labelUrgences' }
+    case 'COMPANY':
+      return { POLICY: 'labelContrats', MEMO: 'labelFactures', REPORT: 'labelProjets' }
+    case 'GOVERNMENT':
+      return { POLICY: 'labelProcedures', MEMO: 'labelDecrets', ADMINISTRATIVE: 'labelArretes' }
+    case 'LAW_FIRM':
+      return { POLICY: 'labelDossiers', REPORT: 'labelPlaidoiries', ADMINISTRATIVE: 'labelClients' }
+    default:
+      return {}
+  }
+}
+
+function buildTypeStats(orgType: string, typeSpecificDocs: Record<string, number>, totalUsers: number): Record<string, number> {
   switch (orgType) {
     case 'UNIVERSITY':
       return {
-        labelEtudiants: totalUsers,
-        labelCours: Math.floor(totalDocs * 0.3),
-        labelRecherches: Math.floor(totalDocs * 0.2),
+        labelEtudiants: typeSpecificDocs.labelEtudiants || 0,
+        labelCours: typeSpecificDocs.labelCours || 0,
+        labelRecherches: typeSpecificDocs.labelRecherches || 0,
       }
     case 'HOSPITAL':
       return {
-        labelPatients: totalUsers * 10,
-        labelConsultations: Math.floor(totalDocs * 0.4),
-        labelUrgences: Math.floor(totalDocs * 0.1),
+        labelPatients: typeSpecificDocs.labelPatients || 0,
+        labelConsultations: typeSpecificDocs.labelConsultations || 0,
+        labelUrgences: typeSpecificDocs.labelUrgences || 0,
       }
     case 'COMPANY':
       return {
-        labelContrats: Math.floor(totalDocs * 0.3),
-        labelFactures: Math.floor(totalDocs * 0.25),
-        labelProjets: Math.floor(totalDocs * 0.15),
+        labelContrats: typeSpecificDocs.labelContrats || 0,
+        labelFactures: typeSpecificDocs.labelFactures || 0,
+        labelProjets: typeSpecificDocs.labelProjets || 0,
       }
     case 'GOVERNMENT':
       return {
-        labelProcedures: Math.floor(totalDocs * 0.3),
-        labelDecrets: Math.floor(totalDocs * 0.2),
-        labelArretes: Math.floor(totalDocs * 0.15),
+        labelProcedures: typeSpecificDocs.labelProcedures || 0,
+        labelDecrets: typeSpecificDocs.labelDecrets || 0,
+        labelArretes: typeSpecificDocs.labelArretes || 0,
       }
     case 'LAW_FIRM':
       return {
-        labelDossiers: Math.floor(totalDocs * 0.4),
-        labelPlaidoiries: Math.floor(totalDocs * 0.2),
-        labelClients: totalUsers * 5,
+        labelDossiers: typeSpecificDocs.labelDossiers || 0,
+        labelPlaidoiries: typeSpecificDocs.labelPlaidoiries || 0,
+        labelClients: typeSpecificDocs.labelClients || 0,
       }
     default:
-      return {
-        labelDocuments: totalDocs,
-      }
+      return { labelDocuments: 0 }
   }
 }
