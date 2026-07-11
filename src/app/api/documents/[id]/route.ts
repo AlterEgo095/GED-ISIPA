@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, softDelete } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const orgId = token.organizationId as string
 
   const document = await db.document.findFirst({
-    where: { id, organizationId: orgId },
+    where: { id, organizationId: orgId, isDeleted: false },
     include: {
       author: { select: { id: true, name: true, email: true } },
       department: { select: { id: true, name: true, code: true } },
@@ -51,23 +51,29 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
   }
 
-  const existing = await db.document.findFirst({ where: { id, organizationId: orgId } })
+  const existing = await db.document.findFirst({ where: { id, organizationId: orgId, isDeleted: false } })
   if (!existing) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
 
   try {
     const body = await request.json()
+
+    // Validate enum fields against Prisma enums
+    const validTypes = ['ACADEMIC_RECORD', 'ADMINISTRATIVE', 'FINANCIAL', 'CORRESPONDENCE', 'REPORT', 'CONTRACT', 'CERTIFICATE', 'MEMO', 'POLICY', 'MEDICAL_RECORD', 'LEGAL_BRIEF', 'INVOICE', 'PROPOSAL', 'OTHER']
+    const validClassifications = ['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']
+
+    const updateData: Record<string, unknown> = {}
+    if (body.title) updateData.title = body.title
+    if (body.description !== undefined) updateData.description = body.description
+    if (body.type && validTypes.includes(body.type)) updateData.type = body.type
+    if (body.classification && validClassifications.includes(body.classification)) updateData.classification = body.classification
+    if (body.tags !== undefined) updateData.tags = body.tags
+    if (body.metadata) updateData.metadata = body.metadata
+    if (body.departmentId) updateData.departmentId = body.departmentId
+    updateData.version = { increment: 1 }
+
     const document = await db.document.update({
       where: { id },
-      data: {
-        ...(body.title && { title: body.title }),
-        ...(body.description !== undefined && { description: body.description }),
-        ...(body.type && { type: body.type }),
-        ...(body.classification && { classification: body.classification }),
-        ...(body.tags !== undefined && { tags: body.tags }),
-        ...(body.metadata && { metadata: JSON.stringify(body.metadata) }),
-        ...(body.departmentId && { departmentId: body.departmentId }),
-        version: { increment: 1 },
-      },
+      data: updateData,
     })
 
     await db.auditLog.create({
@@ -100,10 +106,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
   }
 
-  const existing = await db.document.findFirst({ where: { id, organizationId: orgId } })
+  const existing = await db.document.findFirst({ where: { id, organizationId: orgId, isDeleted: false } })
   if (!existing) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
 
-  await db.document.delete({ where: { id } })
+  await softDelete('document', { id }, token.id as string)
 
   await db.auditLog.create({
     data: {

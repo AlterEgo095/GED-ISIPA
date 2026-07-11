@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -24,6 +24,13 @@ enum SubscriptionPlan {
   STARTER
   PROFESSIONAL
   ENTERPRISE
+}
+
+enum AccountStatus {
+  ACTIVE
+  PENDING_VALIDATION
+  SUSPENDED
+  REJECTED
 }
 
 enum OrganizationStatus {
@@ -67,7 +74,7 @@ model Organization {
   accentColor     String?
 
   // Settings (JSON)
-  settings        String             @default("{}")
+  settings        Json               @default("{}")
 
   // Subscription
   trialEndsAt     DateTime?
@@ -79,6 +86,11 @@ model Organization {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
+  // Soft delete
+  isDeleted       Boolean            @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?
+
   // Relations
   users           User[]
   departments     Department[]
@@ -87,6 +99,7 @@ model Organization {
   workflows       Workflow[]
   subscriptions   Subscription[]
   auditLogs       AuditLog[]
+  recordHistory   RecordHistory[]
 }
 
 // ============ USER ============
@@ -109,9 +122,19 @@ model User {
   isActive       Boolean      @default(true)
   lastLogin      DateTime?
 
+  // Account management
+  isPlatformAdmin   Boolean      @default(false)
+  accountStatus     AccountStatus @default(ACTIVE)
+  emailVerified     Boolean      @default(false)
+
   // Timestamps
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  // Soft delete
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?
 
   // Relations
   documents      Document[]
@@ -135,6 +158,11 @@ model Department {
   // Timestamps
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  // Soft delete
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?
 
   // Relations
   users          User[]
@@ -196,7 +224,7 @@ model Document {
   // Versioning
   version         Int            @default(1)
   tags            String         @default("")
-  metadata        String?
+  metadata        Json?
 
   // Multi-tenant
   organizationId  String
@@ -223,6 +251,11 @@ model Document {
   // Timestamps
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+
+  // Soft delete
+  isDeleted       Boolean        @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?
 
   // Relations
   versions        DocumentVersion[]
@@ -262,6 +295,11 @@ model Workflow {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
+  // Soft delete
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?
+
   // Relations
   states         WorkflowState[]
   transitions    WorkflowTransition[]
@@ -292,7 +330,7 @@ model WorkflowTransition {
   toStateId      String
   toState        WorkflowState @relation("ToTransitions", fields: [toStateId], references: [id])
   name           String
-  allowedRoles   String        @default("[]")
+  allowedRoles   Json          @default("[]")
   condition      String?
 }
 
@@ -311,7 +349,7 @@ model OrganizationModule {
   name           String
   description    String?
   status         ModuleStatus @default(INACTIVE)
-  config         String       @default("{}")
+  config         Json         @default("{}")
   activatedAt    DateTime?
 
   createdAt      DateTime     @default(now())
@@ -363,6 +401,14 @@ enum AuditAction {
   WORKFLOW_EXECUTE
   ORGANIZATION_CREATE
   ORGANIZATION_SUSPEND
+  USER_CREATED
+  USER_VALIDATED
+  USER_REJECTED
+  USER_SUSPENDED
+  USER_ACTIVATED
+  ACCOUNT_APPROVE
+  ACCOUNT_REJECT
+  ACCOUNT_SUSPEND
 }
 
 model AuditLog {
@@ -423,8 +469,30 @@ model PasswordReset {
 }
 
 // ============ SYSTEM SETTINGS ============
+
+// ============ RECORD HISTORY (Versioning) ============
+model RecordHistory {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  entityType     String
+  entityId       String
+  fieldName      String
+  oldValue       String?
+  newValue       String?
+  changedBy      String
+  changedAt      DateTime @default(now())
+  changeType     String   @default("UPDATE")
+
+  @@index([entityType, entityId])
+  @@index([organizationId, entityType, entityId])
+  @@index([changedAt])
+}
+
 model SystemSetting {
   id    String @id @default(cuid())
   key   String @unique
   value String
 }
+
+

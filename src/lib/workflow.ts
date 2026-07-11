@@ -75,7 +75,7 @@ export async function createWorkflowFromConfig(
           fromStateId: fromState.id,
           toStateId: toState.id,
           name: transitionConfig.name,
-          allowedRoles: JSON.stringify(transitionConfig.allowedRoles),
+          allowedRoles: transitionConfig.allowedRoles,
         },
       })
     }

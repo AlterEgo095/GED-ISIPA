@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, dbTransaction } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
+import { validateBody, executeWorkflowSchema } from '@/lib/validation'
 import { executeWorkflowTransition } from '@/lib/workflow'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -15,11 +16,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   try {
     const body = await request.json()
-    const { transitionId, documentId } = body
 
-    if (!transitionId || !documentId) {
-      return NextResponse.json({ error: 'transitionId et documentId requis' }, { status: 400 })
-    }
+    const validation = validateBody(executeWorkflowSchema, body)
+    if (validation.error) return validation.error
+    const { transitionId, documentId } = validation.data
 
     // Verify the transition's allowed roles include the user's role
     const transition = await db.workflowTransition.findUnique({
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Transition introuvable' }, { status: 404 })
     }
 
-    const allowedRoles: string[] = JSON.parse(transition.allowedRoles || '[]')
+    const allowedRoles: string[] = (Array.isArray(transition.allowedRoles) ? transition.allowedRoles : []) as string[]
     if (allowedRoles.length > 0 && !allowedRoles.includes(role) && role !== 'SUPER_ADMIN' && role !== 'ORG_ADMIN') {
       return NextResponse.json({ error: 'Rôle non autorisé pour cette transition' }, { status: 403 })
     }

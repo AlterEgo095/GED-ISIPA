@@ -20,10 +20,7 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  typescript: {
-    ignoreBuildErrors: false,
-  },
+
   reactStrictMode: true,
   async headers() {
     return [
@@ -36,3 +33,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

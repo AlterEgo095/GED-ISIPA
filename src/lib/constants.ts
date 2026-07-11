@@ -174,6 +174,14 @@ export const actionLabels: Record<AuditAction, string> = {
   WORKFLOW_EXECUTE: 'Exécution Workflow',
   ORGANIZATION_CREATE: 'Création Organisation',
   ORGANIZATION_SUSPEND: 'Suspension Organisation',
+  USER_CREATED: 'Création Utilisateur',
+  USER_VALIDATED: 'Validation Utilisateur',
+  USER_REJECTED: 'Rejet Utilisateur',
+  USER_SUSPENDED: 'Suspension Utilisateur',
+  USER_ACTIVATED: 'Activation Utilisateur',
+  ACCOUNT_APPROVE: 'Approbation Compte',
+  ACCOUNT_REJECT: 'Rejet Compte',
+  ACCOUNT_SUSPEND: 'Suspension Compte',
 }
 
 // ============ MODULE KEYS ============

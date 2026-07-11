@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
+import { hasPermission } from '@/lib/permissions'
 import type { Role } from '@prisma/client'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params
   const orgId = token.organizationId as string
   const userId = token.id as string
+  const role = token.role as Role
+
+  if (!hasPermission(role, 'documents', 'update')) {
+    return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
+  }
 
   const doc = await db.document.findFirst({
     where: { id, organizationId: orgId },

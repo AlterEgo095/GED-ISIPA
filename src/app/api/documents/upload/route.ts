@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
         fileHash: fileResult.fileHash,
         version: 1,
         tags: validatedData.tags || '',
-        metadata: null,
+        metadata: Prisma.JsonNull,
         organizationId: orgId,
         authorId: userId,
         departmentId: validatedData.departmentId,

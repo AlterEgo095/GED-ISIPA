@@ -4,8 +4,8 @@ import { getToken } from 'next-auth/jwt'
 
 // Rate limiting store with periodic cleanup to prevent memory leaks
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>()
-const CLEANUP_INTERVAL = 5 * 60 * 1000 // Clean every 5 minutes
-const ENTRY_MAX_AGE = 60 * 60 * 1000 // Remove entries older than 1 hour
+const CLEANUP_INTERVAL = 5 * 60 * 1000
+const ENTRY_MAX_AGE = 60 * 60 * 1000
 let lastCleanup = Date.now()
 
 function cleanupRateLimitMap() {
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/auth')) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     if (!checkRateLimit(`auth:${ip}`, 30, 60000)) {
-      return NextResponse.json({ error: 'Trop de tentatives. Réessayez plus tard.' }, { status: 429 })
+      return NextResponse.json({ error: 'Trop de tentatives. Reessayez plus tard.' }, { status: 429 })
     }
   }
 
@@ -62,7 +62,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     if (!checkRateLimit(`api:${ip}`, 100, 60000)) {
-      return NextResponse.json({ error: 'Limite de requêtes dépassée.' }, { status: 429 })
+      return NextResponse.json({ error: 'Limite de requetes depassee.' }, { status: 429 })
     }
   }
 
@@ -78,7 +78,9 @@ export async function middleware(request: NextRequest) {
   if (token && authRoutes.some(route => pathname.startsWith(route))) {
     const orgType = token.organizationType as string
     const role = token.role as string
-    if (role === 'SUPER_ADMIN') {
+    const isPlatformAdm = token.isPlatformAdmin as boolean
+
+    if (role === 'SUPER_ADMIN' || isPlatformAdm) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
     const dashboardRoutes: Record<string, string> = {
@@ -88,6 +90,8 @@ export async function middleware(request: NextRequest) {
       GOVERNMENT: '/dashboard/government',
       SME: '/dashboard/sme',
       LAW_FIRM: '/dashboard/law-firm',
+      INSTITUTION: '/dashboard',
+      NGO: '/dashboard',
     }
     const redirectPath = dashboardRoutes[orgType] || '/dashboard'
     return NextResponse.redirect(new URL(redirectPath, request.url))
@@ -102,15 +106,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // SUPER_ADMIN accessing /dashboard should be redirected to /admin/dashboard
+  // This prevents the redirect loop on the /dashboard page for SUPER_ADMIN users
+  if (token && (token.role as string) === 'SUPER_ADMIN' && (token.isPlatformAdmin as boolean)) {
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+  }
+
   // Role-based protection for super admin routes
-  if (token && pathname.startsWith('/admin') && (token.role as string) !== 'SUPER_ADMIN') {
+  // SUPER_ADMIN / isPlatformAdmin can access /admin/*
+  // Other users cannot
+  if (token && pathname.startsWith('/admin') && (token.role as string) !== 'SUPER_ADMIN' && !(token.isPlatformAdmin as boolean)) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // API route protection
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && pathname !== '/api/health') {
     if (!token) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
     }
   }
 

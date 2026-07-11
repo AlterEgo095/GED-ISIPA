@@ -76,4 +76,9 @@ docker-data/
 /uploads/
 
 # Worklog
-worklog.md
+worklog.mdbackups/
+db/*.bak*
+db/*.before-*
+*.db.bak*
+prisma/*.bak*
+prisma/*.sqlite-backup

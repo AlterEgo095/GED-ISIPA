@@ -39,6 +39,9 @@
   "exclude": [
     "node_modules",
     "skills",
-    "scripts"
+    "scripts",
+    "docx-gen",
+    "download",
+    "*.js"
   ]
 }

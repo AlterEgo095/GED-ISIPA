@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   await db.auditLog.create({
     data: {
-      action: 'APPROVE',
+      action: 'UPDATE',
       entityType: 'Document',
       entityId: id,
       details: `Document "${doc.title}" publié`,

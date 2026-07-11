@@ -27,16 +27,16 @@ export async function GET(request: NextRequest) {
       recentActivities,
       typeSpecificDocs,
     ] = await Promise.all([
-      db.document.count({ where: { organizationId: orgId, isArchived: false } }),
+      db.document.count({ where: { organizationId: orgId, isArchived: false, isDeleted: false } }),
       db.document.count({ where: { organizationId: orgId, status: 'DRAFT', isArchived: false } }),
       db.document.count({ where: { organizationId: orgId, status: 'PENDING_REVIEW', isArchived: false } }),
       db.document.count({ where: { organizationId: orgId, status: 'APPROVED', isArchived: false } }),
       db.document.count({ where: { organizationId: orgId, status: 'PUBLISHED', isArchived: false } }),
-      db.document.count({ where: { organizationId: orgId, isArchived: true } }),
+      db.document.count({ where: { organizationId: orgId, isArchived: true, isDeleted: false } }),
       db.user.count({ where: { organizationId: orgId, isActive: true } }),
       db.department.count({ where: { organizationId: orgId } }),
       db.document.findMany({
-        where: { organizationId: orgId, isArchived: false },
+        where: { organizationId: orgId, isArchived: false, isDeleted: false },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
       }),
       db.document.groupBy({
         by: ['status'],
-        where: { organizationId: orgId, isArchived: false },
+        where: { organizationId: orgId, isArchived: false, isDeleted: false },
         _count: { status: true },
       }),
       db.document.groupBy({
         by: ['type'],
-        where: { organizationId: orgId, isArchived: false },
+        where: { organizationId: orgId, isArchived: false, isDeleted: false },
         _count: { type: true },
       }),
       db.auditLog.findMany({

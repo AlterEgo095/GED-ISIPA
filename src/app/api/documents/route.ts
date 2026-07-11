@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, softDelete, dbTransaction } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
 import { createDocumentSchema, validateBody } from '@/lib/validation'
 import type { Role } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   const classification = searchParams.get('classification') || ''
   const departmentId = searchParams.get('departmentId') || ''
 
-  const where: Record<string, unknown> = { organizationId: orgId, isArchived: false }
+  const where: Record<string, unknown> = { organizationId: orgId, isArchived: false, isDeleted: false }
   if (search) where.title = { contains: search }
   if (status) where.status = status
   if (type) where.type = type
@@ -70,38 +71,42 @@ export async function POST(request: NextRequest) {
     // Generate unique reference
     const reference = `DOC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
 
-    const document = await db.document.create({
-      data: {
-        title,
-        reference,
-        description: description || null,
-        type,
-        classification: classification || 'INTERNAL',
-        status: 'DRAFT',
-        filePath: `/uploads/${reference}`,
-        fileName: title,
-        fileSize: 0,
-        mimeType: 'application/octet-stream',
-        fileHash: '',
-        version: 1,
-        tags: tags || '',
-        metadata: metadata ? JSON.stringify(metadata) : null,
-        organizationId: orgId,
-        authorId: userId,
-        departmentId,
-      },
-    })
+    const document = await dbTransaction(async (tx) => {
+      const doc = await tx.document.create({
+        data: {
+          title,
+          reference,
+          description: description || null,
+          type,
+          classification: classification || 'INTERNAL',
+          status: 'DRAFT',
+          filePath: `/uploads/${reference}`,
+          fileName: title,
+          fileSize: 0,
+          mimeType: 'application/octet-stream',
+          fileHash: '',
+          version: 1,
+          tags: tags || '',
+          metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : Prisma.JsonNull,
+          organizationId: orgId,
+          authorId: userId,
+          departmentId,
+        },
+      })
 
-    await db.auditLog.create({
-      data: {
-        action: 'CREATE',
-        entityType: 'Document',
-        entityId: document.id,
-        details: `Document "${title}" créé`,
-        organizationId: orgId,
-        userId,
-        documentId: document.id,
-      },
+      await tx.auditLog.create({
+        data: {
+          action: 'CREATE',
+          entityType: 'Document',
+          entityId: doc.id,
+          details: `Document "${title}" créé`,
+          organizationId: orgId,
+          userId,
+          documentId: doc.id,
+        },
+      })
+
+      return doc
     })
 
     return NextResponse.json(document, { status: 201 })

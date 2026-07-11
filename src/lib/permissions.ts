@@ -1,11 +1,14 @@
 import type { Role } from '@prisma/client'
 
+export type { Role }
+
+// Re-exported for test imports
 export type Resource = 'documents' | 'users' | 'departments' | 'modules' | 'workflows' | 'billing' | 'settings' | 'audit' | 'organizations'
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'reject' | 'archive' | 'restore' | 'publish' | 'manage' | 'export' | 'share'
 
 type PermissionMatrix = Record<Role, Record<Resource, Action[]>>
 
-const PERMISSION_MATRIX: PermissionMatrix = {
+export const PERMISSION_MATRIX: PermissionMatrix = {
   SUPER_ADMIN: {
     documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'restore', 'publish', 'manage', 'export', 'share'],
     users: ['create', 'read', 'update', 'delete', 'manage', 'export'],
