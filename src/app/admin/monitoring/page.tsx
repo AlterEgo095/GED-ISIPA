@@ -17,17 +17,21 @@ export default function AdminMonitoringPage() {
 
   async function loadAll() {
     setLoading(true)
-    const [healthRes, statsRes] = await Promise.all([
-      fetch('/api/health'),
-      fetch('/api/stats/platform'),
-    ])
-    if (healthRes.ok) setHealth(await healthRes.json())
-    if (statsRes.ok) setDbStats(await statsRes.json())
-    // Get server info from API
     try {
-      const res = await fetch('/api/admin/monitoring')
-      if (res.ok) setServerInfo(await res.json())
-    } catch {}
+      const [healthRes, statsRes] = await Promise.all([
+        fetch('/api/health'),
+        fetch('/api/stats/platform'),
+      ])
+      if (healthRes.ok) setHealth(await healthRes.json())
+      if (statsRes.ok) setDbStats(await statsRes.json())
+      // Get server info from API
+      try {
+        const res = await fetch('/api/admin/monitoring')
+        if (res.ok) setServerInfo(await res.json())
+      } catch {}
+    } catch (error) {
+      console.error('Failed to load monitoring data:', error)
+    }
     setLoading(false)
   }
 

@@ -82,3 +82,4 @@ db/*.before-*
 *.db.bak*
 prisma/*.bak*
 prisma/*.sqlite-backup
+backups/
