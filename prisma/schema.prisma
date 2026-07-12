@@ -312,6 +312,9 @@ model Document {
   folderId         String?
   folder           Folder?         @relation(fields: [folderId], references: [id])
 
+  // Previous status (for restore from archive)
+  previousStatus    String?
+
   // Lifecycle review
   reviewedBy       String?
   reviewedAt       DateTime?
