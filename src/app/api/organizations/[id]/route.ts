@@ -1,3 +1,4 @@
+import { updateOrganizationSchema } from '@/lib/validation'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'

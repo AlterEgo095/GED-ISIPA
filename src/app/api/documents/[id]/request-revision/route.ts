@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       data: { 
         status: 'PENDING_REVISION', 
         reviewComment: validation.data.comment, 
-        reviewedBy: userId, 
+        reviewedById: userId, 
         reviewedAt: new Date() 
       } 
     })

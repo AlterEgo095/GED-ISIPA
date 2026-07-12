@@ -54,7 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       where: { id }, 
       data: { 
         status: 'DESTROYED', 
-        destroyedAt: new Date(), 
+        destroyAt: new Date(), 
         destroyedBy: userId, 
         filePath: '', 
         fileSize: 0 

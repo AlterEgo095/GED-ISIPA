@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       where: { id },
       data: {
         status: 'IN_REVIEW',
-        reviewedBy: userId,
+        reviewedById: userId,
         reviewedAt: new Date(),
       },
       include: {

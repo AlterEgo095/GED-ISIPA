@@ -140,6 +140,7 @@ model Department {
   name        String
   code        String
   description String?
+  isDeleted   Boolean @default(false)
 
   // Multi-tenant
   organizationId String
@@ -257,6 +258,14 @@ model Document {
   destructionApproved   Boolean   @default(false)
   destructionApprovedBy String?
   destroyAt             DateTime?
+  destroyedBy          String?
+  retentionPolicy     String?
+  previousStatus      String?
+  viewCount           Int            @default(0)
+  downloadCount       Int            @default(0)
+  rejectedBy          String?
+  rejectionReason     String?
+  rejectedAt          DateTime?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -274,17 +283,20 @@ model Document {
 
 // ============ DOCUMENT VERSION ============
 model DocumentVersion {
-  id         String   @id @default(cuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id])
-  version    Int
-  filePath   String
-  fileName   String
-  fileSize   Int
-  fileHash   String
-  changeLog  String?
-  createdBy  String
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  version     Int
+  filePath    String
+  fileName    String
+  fileSize    Int
+  fileHash    String
+  mimeType    String   @default("application/octet-stream")
+  previousVersionId String?
+  changeType  String   @default("UPDATE")
+  changeLog   String?
+  createdBy   String
+  createdAt   DateTime @default(now())
 }
 
 // ============ FOLDER ============
@@ -292,6 +304,10 @@ model Folder {
   id          String   @id @default(cuid())
   name        String
   description String?
+  color       String   @default("#6b7280")
+  icon        String?
+  order       Int      @default(0)
+  createdBy   String?
   parentId    String?
   parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
   children    Folder[] @relation("FolderHierarchy")
@@ -336,27 +352,35 @@ model DocumentComment {
 
 // ============ DOCUMENT METADATA ============
 model DocumentMetadata {
-  id         String   @id @default(cuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id])
-  key        String
-  value      String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  key         String
+  value       String
+  type        String   @default("TEXT")
+  required    Boolean  @default(false)
+  category    String?
+  options     String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([documentId, key])
 }
 
 // ============ DOCUMENT SHARE ============
 model DocumentShare {
-  id         String    @id @default(cuid())
-  documentId String
-  document   Document  @relation(fields: [documentId], references: [id])
-  sharedWith String
-  sharedBy   String
-  permission String    @default("READ") // READ, WRITE, ADMIN
-  expiresAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id            String    @id @default(cuid())
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id])
+  sharedWith    String
+  sharedBy      String
+  permission    String    @default("READ")
+  shareType     String    @default("USER")
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
+  downloadLimit Int?
+  downloadCount Int       @default(0)
+  createdAt     DateTime  @default(now())
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])

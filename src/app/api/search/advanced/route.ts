@@ -37,13 +37,13 @@ export async function GET(request: NextRequest) {
       if (dateTo) where.createdAt.lte = new Date(dateTo)
     }
     if (tags.length) {
-      where.documentTags = { some: { tag: { name: { in: tags } } } }
+      where.tagAssignments = { some: { tag: { name: { in: tags } } } }
     }
 
     const [documents, total] = await Promise.all([
       db.document.findMany({
         where,
-        include: { author: { select: { id: true, name: true, email: true } }, department: { select: { id: true, name: true } }, documentTags: { include: { tag: true } } },
+        include: { author: { select: { id: true, name: true, email: true } }, department: { select: { id: true, name: true } } },
         orderBy: { [sort]: order === 'asc' ? 'asc' : 'desc' },
         skip: (page - 1) * limit,
         take: limit,

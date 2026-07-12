@@ -79,7 +79,7 @@ export async function GET(
     // Encode filename for Content-Disposition (handle non-ASCII)
     const encodedFileName = encodeURIComponent(document.fileName)
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': document.mimeType || 'application/octet-stream',

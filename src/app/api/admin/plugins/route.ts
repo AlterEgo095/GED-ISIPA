@@ -45,16 +45,18 @@ export async function POST(request: NextRequest) {
   }
 
   await initializeBuiltinPlugins()
-  const clientInfo = getClientInfo(request)
-    await logAdminAction({
-      action: 'PLUGIN_INSTALL',
-      entityType: 'Plugin',
-      entityId: plugin.id,
-      details: `Plugin "${plugin.name}" installé`,
-      organizationId: token.organizationId as string,
-      userId: token.id as string,
-      ...clientInfo,
-    })
 
-    return NextResponse.json({ success: true, message: 'Plugins intégrés initialisés' })
+  // Audit log for plugin initialization
+  const clientInfo = getClientInfo(request)
+  await logAdminAction({
+    action: 'PLUGIN_INSTALL',
+    entityType: 'Plugin',
+    entityId: 'builtin-init',
+    details: 'Plugins intégrés initialisés par le Super Admin',
+    organizationId: token.organizationId as string,
+    userId: token.id as string,
+    ...clientInfo,
+  })
+
+  return NextResponse.json({ success: true, message: 'Plugins intégrés initialisés' })
 }

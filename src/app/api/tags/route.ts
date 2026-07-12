@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
     const orgId = token.organizationId as string
-    const tags = await db.documentTag.findMany({ where: { organizationId: orgId }, include: { _count: { select: { documents: true } } }, orderBy: { name: 'asc' } })
+    const tags = await db.documentTag.findMany({ where: { organizationId: orgId }, include: { _count: { select: {  } } }, orderBy: { name: 'asc' } })
     return NextResponse.json({ tags })
   } catch (error: any) { return NextResponse.json({ error: error.message || 'Erreur' }, { status: 500 }) }
 }

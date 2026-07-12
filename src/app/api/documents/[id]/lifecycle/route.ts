@@ -71,11 +71,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         updatedAt: doc.updatedAt,
         archivedAt: doc.archivedAt,
         archivedBy: doc.archivedBy,
-        reviewedBy: doc.reviewedBy,
+        reviewedById: doc.reviewedById,
         reviewedAt: doc.reviewedAt,
         rejectedBy: doc.rejectedBy,
         rejectedAt: doc.rejectedAt,
-        destroyedAt: doc.destroyedAt,
         destroyedBy: doc.destroyedBy,
       },
     })

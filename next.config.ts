@@ -22,7 +22,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   typescript: {
-    ignoreBuildErrors: true, // TODO: re-enable after type fixes
+    ignoreBuildErrors: false, // TODO: re-enable after type fixes
   },
   reactStrictMode: true,
   async headers() {

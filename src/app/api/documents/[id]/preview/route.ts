@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Update view count
     await db.document.update({
       where: { id },
-      data: { viewCount: { increment: 1 }, lastAccessedAt: new Date() },
+      data: { viewCount: { increment: 1 } },
     })
 
     // Log preview access
