@@ -17,7 +17,6 @@ declare module 'next-auth' {
       organizationType: OrganizationType
       organizationCode: string
       departmentId: string | null
-      isPlatformAdmin: boolean
     }
   }
   interface User {
@@ -28,7 +27,6 @@ declare module 'next-auth' {
     organizationType: OrganizationType
     organizationCode: string
     departmentId: string | null
-    isPlatformAdmin: boolean
   }
 }
 
@@ -42,7 +40,6 @@ declare module 'next-auth/jwt' {
     organizationType: OrganizationType
     organizationCode: string
     departmentId: string | null
-    isPlatformAdmin: boolean
   }
 }
 
@@ -69,26 +66,23 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Utilisateur introuvable ou inactif')
         }
 
-        // Check account status
-        if (user.accountStatus === 'PENDING_VALIDATION') {
-          throw new Error('Votre compte est en attente de validation par un administrateur')
-        }
-        if (user.accountStatus === 'REJECTED') {
-          throw new Error('Votre compte a été rejeté. Contactez un administrateur.')
-        }
-        if (user.accountStatus === 'SUSPENDED') {
-          throw new Error('Votre compte a été suspendu. Contactez un administrateur.')
-        }
-
         // Secure password comparison using bcrypt
         const isValid = await bcrypt.compare(credentials.password, user.password)
         if (!isValid) {
           throw new Error('Mot de passe incorrect')
         }
 
-        // Verify org code if provided (not required for platform admins)
-        if (credentials.orgCode && !user.isPlatformAdmin && user.organization.code !== credentials.orgCode) {
-          throw new Error("Code organisation invalide")
+        // SUPER_ADMIN bypasses org code requirement entirely — they are platform admin, not bound to one org
+        if (user.role === 'SUPER_ADMIN') {
+          // No org code needed for platform admin, skip validation
+        } else {
+          // Regular org users MUST provide org code for multi-tenant verification
+          if (!credentials.orgCode) {
+            throw new Error('Code organisation requis')
+          }
+          if (user.organization.code !== credentials.orgCode) {
+            throw new Error('Code organisation invalide')
+          }
         }
 
         // Update last login
@@ -103,7 +97,7 @@ export const authOptions: NextAuthOptions = {
             action: 'LOGIN',
             entityType: 'User',
             entityId: user.id,
-            details: user.isPlatformAdmin ? 'Connexion Super Admin Plateforme' : 'Connexion reussie',
+            details: 'Connexion réussie',
             organizationId: user.organizationId,
             userId: user.id,
           },
@@ -120,7 +114,6 @@ export const authOptions: NextAuthOptions = {
           organizationType: user.organization.type,
           organizationCode: user.organization.code,
           departmentId: user.departmentId,
-          isPlatformAdmin: user.isPlatformAdmin,
         }
       },
     }),
@@ -136,7 +129,6 @@ export const authOptions: NextAuthOptions = {
         token.organizationType = user.organizationType
         token.organizationCode = user.organizationCode
         token.departmentId = user.departmentId
-        token.isPlatformAdmin = user.isPlatformAdmin
       }
       // Refresh role/org data from DB on session update to prevent stale permissions
       if (trigger === 'update' && token.id) {
@@ -152,7 +144,6 @@ export const authOptions: NextAuthOptions = {
           token.organizationType = freshUser.organization.type
           token.organizationCode = freshUser.organization.code
           token.departmentId = freshUser.departmentId
-          token.isPlatformAdmin = freshUser.isPlatformAdmin
         }
       }
       return token
@@ -167,7 +158,6 @@ export const authOptions: NextAuthOptions = {
         session.user.organizationType = token.organizationType
         session.user.organizationCode = token.organizationCode
         session.user.departmentId = token.departmentId
-        session.user.isPlatformAdmin = token.isPlatformAdmin
       }
       return session
     },
@@ -180,4 +170,42 @@ export const authOptions: NextAuthOptions = {
     maxAge: 24 * 60 * 60, // 24 hours
   },
   secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      name: '__Secure-next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    callbackUrl: {
+      name: '__Secure-next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    csrfToken: {
+      name: '__Host-next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    pkceCodeVerifier: {
+      name: '__Secure-next-auth.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+  },
 }

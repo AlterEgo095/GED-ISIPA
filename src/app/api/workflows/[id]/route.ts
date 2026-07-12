@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db, softDelete } from '@/lib/db'
+import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
@@ -85,7 +85,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   try {
-    await softDelete('workflow', { id }, token.id as string)
+    await db.workflow.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Workflow delete error:', error)

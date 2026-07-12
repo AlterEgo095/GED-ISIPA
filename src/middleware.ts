@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { corsHeaders, corsResponse } from '@/lib/cors'
 
 // Rate limiting store with periodic cleanup to prevent memory leaks
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>()
-const CLEANUP_INTERVAL = 5 * 60 * 1000
-const ENTRY_MAX_AGE = 60 * 60 * 1000
+const CLEANUP_INTERVAL = 5 * 60 * 1000 // Clean every 5 minutes
+const ENTRY_MAX_AGE = 60 * 60 * 1000 // Remove entries older than 1 hour
 let lastCleanup = Date.now()
 
 function cleanupRateLimitMap() {
@@ -42,6 +43,12 @@ const authRoutes = ['/login', '/register']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Handle CORS preflight requests
+  if (request.method === 'OPTIONS') {
+    return corsResponse(request)
+  }
+
   const response = NextResponse.next()
 
   // Security headers
@@ -50,11 +57,19 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('X-XSS-Protection', '1; mode=block')
 
+  // CORS headers for API routes
+  if (pathname.startsWith('/api/')) {
+    const cHeaders = corsHeaders(request)
+    for (const [key, value] of Object.entries(cHeaders)) {
+      response.headers.set(key, value)
+    }
+  }
+
   // Rate limiting for auth endpoints
   if (pathname.startsWith('/api/auth')) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     if (!checkRateLimit(`auth:${ip}`, 30, 60000)) {
-      return NextResponse.json({ error: 'Trop de tentatives. Reessayez plus tard.' }, { status: 429 })
+      return NextResponse.json({ error: 'Trop de tentatives. Réessayez plus tard.' }, { status: 429 })
     }
   }
 
@@ -62,7 +77,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     if (!checkRateLimit(`api:${ip}`, 100, 60000)) {
-      return NextResponse.json({ error: 'Limite de requetes depassee.' }, { status: 429 })
+      return NextResponse.json({ error: 'Limite de requêtes dépassée.' }, { status: 429 })
     }
   }
 
@@ -78,9 +93,7 @@ export async function middleware(request: NextRequest) {
   if (token && authRoutes.some(route => pathname.startsWith(route))) {
     const orgType = token.organizationType as string
     const role = token.role as string
-    const isPlatformAdm = token.isPlatformAdmin as boolean
-
-    if (role === 'SUPER_ADMIN' || isPlatformAdm) {
+    if (role === 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
     const dashboardRoutes: Record<string, string> = {
@@ -90,8 +103,6 @@ export async function middleware(request: NextRequest) {
       GOVERNMENT: '/dashboard/government',
       SME: '/dashboard/sme',
       LAW_FIRM: '/dashboard/law-firm',
-      INSTITUTION: '/dashboard',
-      NGO: '/dashboard',
     }
     const redirectPath = dashboardRoutes[orgType] || '/dashboard'
     return NextResponse.redirect(new URL(redirectPath, request.url))
@@ -106,25 +117,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // SUPER_ADMIN accessing /dashboard should be redirected to /admin/dashboard
-  // This prevents the redirect loop on the /dashboard page for SUPER_ADMIN users
-  if (token && (token.role as string) === 'SUPER_ADMIN' && (token.isPlatformAdmin as boolean)) {
-    if (pathname === '/dashboard' || pathname === '/dashboard/') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
-    }
+  // Role-based protection for super admin routes
+  if (token && pathname.startsWith('/admin') && (token.role as string) !== 'SUPER_ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Role-based protection for super admin routes
-  // SUPER_ADMIN / isPlatformAdmin can access /admin/*
-  // Other users cannot
-  if (token && pathname.startsWith('/admin') && (token.role as string) !== 'SUPER_ADMIN' && !(token.isPlatformAdmin as boolean)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Redirect SUPER_ADMIN away from organization dashboard to admin panel
+  if (token && (token.role as string) === 'SUPER_ADMIN' && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url))
   }
 
   // API route protection
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && pathname !== '/api/health') {
     if (!token) {
-      return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
   }
 

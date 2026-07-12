@@ -5,7 +5,7 @@ export async function GET() {
   const checks: Record<string, 'ok' | 'error'> = {}
   let overallStatus = 'ok'
 
-  // Check database connectivity (PostgreSQL)
+  // Check database connectivity
   try {
     await db.$queryRaw`SELECT 1`
     checks.database = 'ok'
@@ -14,14 +14,22 @@ export async function GET() {
     overallStatus = 'error'
   }
 
-  // Check if uploads directory is writable
+  // Storage check: for PostgreSQL, DB connectivity implies storage OK
+  // For SQLite, check if the DB file directory is writable
   try {
-    const fs = await import('fs/promises')
-    const path = await import('path')
-    const uploadsDir = path.join(process.cwd(), 'uploads')
-    await fs.mkdir(uploadsDir, { recursive: true })
-    await fs.access(uploadsDir, fs.constants.W_OK)
-    checks.storage = 'ok'
+    const dbUrl = process.env.DATABASE_URL || ''
+    if (dbUrl.startsWith('file:')) {
+      const fs = await import('fs/promises')
+      const path = await import('path')
+      const dbPath = dbUrl.replace('file:', '')
+      if (dbPath) {
+        await fs.access(path.dirname(dbPath), fs.constants.W_OK)
+      }
+      checks.storage = 'ok'
+    } else {
+      // PostgreSQL or other server-based DB: storage is managed by the DB server
+      checks.storage = 'ok'
+    }
   } catch {
     checks.storage = 'error'
     overallStatus = 'error'

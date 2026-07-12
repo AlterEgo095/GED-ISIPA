@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
-import { validateBody, moduleActionSchema } from '@/lib/validation'
 import { activateModule, suspendModule, deactivateModule } from '@/lib/module-engine'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -33,10 +32,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   try {
     const body = await request.json()
+    const { moduleKey, action } = body
 
-    const validation = validateBody(moduleActionSchema, body)
-    if (validation.error) return validation.error
-    const { moduleKey, action } = validation.data
+    if (!moduleKey || !action) {
+      return NextResponse.json({ error: 'moduleKey et action requis' }, { status: 400 })
+    }
 
     switch (action) {
       case 'activate': {

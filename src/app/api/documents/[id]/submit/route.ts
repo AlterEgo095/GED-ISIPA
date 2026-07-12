@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
+import { hasPermission } from '@/lib/permissions'
 import type { NextRequest } from 'next/server'
-import { validateTransition } from '@/lib/document-lifecycle'
 import type { Role } from '@prisma/client'
 
-/**
- * POST /api/documents/[id]/submit
- * Transition: DRAFT/REJECTED → PENDING_REVIEW
- * Updated to use lifecycle state machine for validation.
- */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
@@ -19,19 +14,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const userId = token.id as string
   const role = token.role as Role
 
+  // RBAC: Must have 'create' or 'update' permission on documents to submit
+  if (!hasPermission(role, 'documents', 'create') && !hasPermission(role, 'documents', 'update')) {
+    return NextResponse.json({ error: 'Permissions insuffisantes pour soumettre un document' }, { status: 403 })
+  }
+
   const doc = await db.document.findFirst({
     where: { id, organizationId: orgId, isDeleted: false },
     include: { workflowState: true },
   })
   if (!doc) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
 
-  // Use lifecycle state machine for validation
-  const validation = validateTransition(doc.status, 'submit', role, doc.isDeleted)
-  if (!validation.valid) {
-    return NextResponse.json({ error: validation.error }, { status: 400 })
+  // Ownership: Only author or admin can submit
+  if (doc.authorId !== userId && !['SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER'].includes(role)) {
+    return NextResponse.json({ error: 'Seul l\'auteur ou un administrateur peut soumettre ce document' }, { status: 403 })
   }
 
-  // Find the workflow and get the review state
+  if (doc.status !== 'DRAFT' && doc.status !== 'REJECTED') {
+    return NextResponse.json({ error: 'Seuls les brouillons ou documents rejetés peuvent être soumis' }, { status: 400 })
+  }
+
+  // Find the workflow and get the first transition (Draft → Review)
   const workflow = await db.workflow.findFirst({
     where: { organizationId: orgId, isActive: true },
     include: {
@@ -40,43 +43,42 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     },
   })
 
-  let workflowStateId: string | null = null
   if (workflow) {
-    const reviewState = workflow.states.find(s => s.name === 'En révision' || s.name.toLowerCase().includes('review'))
-    if (reviewState) workflowStateId = reviewState.id
-  }
+    const initialState = workflow.states.find(s => s.isInitial)
+    const reviewState = workflow.states.find(s => s.name === 'En révision')
 
-  // Clear rejection data when resubmitting
-  const updateData: Record<string, unknown> = {
-    status: 'PENDING_REVIEW',
-    workflowStateId,
-    rejectedBy: null,
-    rejectedAt: null,
-    rejectionReason: null,
+    if (initialState && reviewState) {
+      await db.document.update({
+        where: { id },
+        data: {
+          status: 'PENDING_REVIEW',
+          workflowStateId: reviewState.id,
+        },
+      })
+    } else {
+      await db.document.update({
+        where: { id },
+        data: { status: 'PENDING_REVIEW' },
+      })
+    }
+  } else {
+    await db.document.update({
+      where: { id },
+      data: { status: 'PENDING_REVIEW' },
+    })
   }
-
-  const updated = await db.document.update({
-    where: { id },
-    data: updateData,
-    include: {
-      author: { select: { id: true, name: true, email: true } },
-      department: { select: { id: true, name: true, code: true } },
-    },
-  })
 
   await db.auditLog.create({
     data: {
       action: 'UPDATE',
       entityType: 'Document',
       entityId: id,
-      details: `Document "${doc.title}" soumis pour validation`,
+      details: `Document "${doc.title}" soumis pour révision`,
       organizationId: orgId,
       userId,
       documentId: id,
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-      userAgent: request.headers.get('user-agent') || null,
     },
   })
 
-  return NextResponse.json({ document: updated, message: 'Document soumis pour validation' })
+  return NextResponse.json({ message: 'Document soumis pour révision' })
 }

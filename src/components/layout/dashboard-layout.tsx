@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -39,13 +39,21 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Redirect SUPER_ADMIN to admin layout
+  useEffect(() => {
+    if (status === 'loading') return
+    if (session?.user?.role === 'SUPER_ADMIN' && !pathname.startsWith('/admin')) {
+      router.replace('/admin/dashboard')
+    }
+  }, [session, status, pathname, router])
 
   const orgType = session?.user?.organizationType as never
   const role = session?.user?.role as never

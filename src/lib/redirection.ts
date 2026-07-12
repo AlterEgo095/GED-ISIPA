@@ -17,13 +17,11 @@ import {
   Building,
   Landmark,
   Scale,
-  Eye,
-  Activity,
-  Monitor,
-  KeyRound,
-  Lock,
-  HardDrive,
-  Clock,
+  Brain,
+  Key,
+  Webhook,
+  MapPin,
+  Puzzle,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -100,44 +98,60 @@ export function getNavigationItems(orgType: OrganizationType, role: Role): NavIt
       roles: ['SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'USER', 'VIEWER', 'DEAN', 'PROFESSOR', 'DOCTOR', 'NURSE', 'LAWYER', 'PARALEGAL', 'CFO', 'HR_MANAGER', 'CIVIL_SERVANT'],
     },
     {
-      label: 'Param\u00e8tres',
+      label: 'Paramètres',
       href: '/settings',
       icon: Settings,
       roles: ['SUPER_ADMIN', 'ORG_ADMIN'],
     },
   ]
 
+  // Filter by org type specific items
   const orgSpecificItems = getOrgSpecificNavItems(orgType)
   const allItems = [...orgSpecificItems, ...baseItems]
+
+  // Filter by role
   return allItems.filter(item => item.roles.includes(role))
 }
 
 function getOrgSpecificNavItems(orgType: OrganizationType): NavItem[] {
   switch (orgType) {
-    case 'UNIVERSITY': return [{ label: 'Acad\u00e9mique', href: '/modules?key=ACADEMIC', icon: GraduationCap, roles: ['ORG_ADMIN', 'DEAN', 'PROFESSOR'] }]
-    case 'HOSPITAL': return [{ label: 'M\u00e9dical', href: '/modules?key=MEDICAL', icon: Stethoscope, roles: ['ORG_ADMIN', 'DOCTOR', 'NURSE'] }]
-    case 'COMPANY': return [{ label: 'Entreprise', href: '/modules?key=FINANCE', icon: Building, roles: ['ORG_ADMIN', 'CFO', 'HR_MANAGER'] }]
-    case 'GOVERNMENT': return [{ label: 'Proc\u00e9dures', href: '/modules?key=PROCEDURE', icon: Landmark, roles: ['ORG_ADMIN', 'CIVIL_SERVANT'] }]
-    case 'LAW_FIRM': return [{ label: 'Juridique', href: '/modules?key=LEGAL', icon: Scale, roles: ['ORG_ADMIN', 'LAWYER', 'PARALEGAL'] }]
-    default: return []
+    case 'UNIVERSITY':
+      return [
+        { label: 'Académique', href: '/modules?key=ACADEMIC', icon: GraduationCap, roles: ['ORG_ADMIN', 'DEAN', 'PROFESSOR'] },
+      ]
+    case 'HOSPITAL':
+      return [
+        { label: 'Médical', href: '/modules?key=MEDICAL', icon: Stethoscope, roles: ['ORG_ADMIN', 'DOCTOR', 'NURSE'] },
+      ]
+    case 'COMPANY':
+      return [
+        { label: 'Entreprise', href: '/modules?key=FINANCE', icon: Building, roles: ['ORG_ADMIN', 'CFO', 'HR_MANAGER'] },
+      ]
+    case 'GOVERNMENT':
+      return [
+        { label: 'Procédures', href: '/modules?key=PROCEDURE', icon: Landmark, roles: ['ORG_ADMIN', 'CIVIL_SERVANT'] },
+      ]
+    case 'LAW_FIRM':
+      return [
+        { label: 'Juridique', href: '/modules?key=LEGAL', icon: Scale, roles: ['ORG_ADMIN', 'LAWYER', 'PARALEGAL'] },
+      ]
+    default:
+      return []
   }
 }
 
-export function getSuperAdminNavItems() {
+export function getSuperAdminNavItems(): NavItem[] {
   return [
-    { href: '/admin/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-    { href: '/admin/organizations', label: 'Organisations', icon: Building2 },
-    { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-    { href: '/admin/accounts', label: 'Validation comptes', icon: Users },
-    { href: '/admin/supervision', label: 'Supervision', icon: Eye },
-    { href: '/admin/analytics', label: 'Analytique', icon: BarChart3 },
-    { href: '/admin/billing', label: 'Facturation', icon: CreditCard },
-    { href: '/admin/modules', label: 'Modules', icon: Boxes },
-    { href: '/admin/settings', label: 'Param\u00e8tres', icon: Settings },
-    { href: '/admin/audit', label: 'Audit Logs', icon: Shield },
-    { href: '/admin/monitoring', label: 'Monitoring', icon: Activity },
-    { href: '/admin/sessions', label: 'Sessions', icon: Monitor },
-    { href: '/admin/permissions', label: 'Permissions', icon: Lock },
-    { href: '/admin/backups', label: 'Sauvegardes', icon: HardDrive },
+    { label: 'Vue Plateforme', href: '/admin/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
+    { label: 'Organisations', href: '/admin/organizations', icon: Building2, roles: ['SUPER_ADMIN'] },
+    { label: 'Facturation', href: '/admin/billing', icon: CreditCard, roles: ['SUPER_ADMIN'] },
+    { label: 'Analytique', href: '/admin/analytics', icon: BarChart3, roles: ['SUPER_ADMIN'] },
+    { label: 'Modules Plateforme', href: '/admin/modules', icon: Boxes, roles: ['SUPER_ADMIN'] },
+    { label: 'Config IA', href: '/admin/ai-config', icon: Brain, roles: ['SUPER_ADMIN'] },
+    { label: 'Clés API', href: '/admin/api-keys', icon: Key, roles: ['SUPER_ADMIN'] },
+    { label: 'Plugins', href: '/admin/plugins', icon: Puzzle, roles: ['SUPER_ADMIN'] },
+    { label: 'Campus', href: '/admin/campuses', icon: MapPin, roles: ['SUPER_ADMIN'] },
+    { label: 'Webhooks', href: '/admin/webhooks', icon: Webhook, roles: ['SUPER_ADMIN'] },
+    { label: 'Intégrations', href: '/admin/integrations', icon: Puzzle, roles: ['SUPER_ADMIN'] },
   ]
 }

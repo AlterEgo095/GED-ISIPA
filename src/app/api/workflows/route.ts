@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
-import { validateBody, createWorkflowSchema } from '@/lib/validation'
 import { hasPermission } from '@/lib/permissions'
 import type { Role } from '@prisma/client'
 
@@ -46,10 +45,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
+    const { name, description, states, transitions } = body
 
-    const validation = validateBody(createWorkflowSchema, body)
-    if (validation.error) return validation.error
-    const { name, description, states, transitions } = validation.data
+    if (!name) {
+      return NextResponse.json({ error: 'Nom du workflow requis' }, { status: 400 })
+    }
 
     const workflow = await db.workflow.create({
       data: {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
                 fromStateId: from.id,
                 toStateId: to.id,
                 name: t.name,
-                allowedRoles: t.allowedRoles || [],
+                allowedRoles: JSON.stringify(t.allowedRoles || []),
               },
             })
           }

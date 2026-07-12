@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
-import { validateBody, createOrganizationSchema } from '@/lib/validation'
+import { createOrganizationSchema, validateBody } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -16,18 +16,11 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search') || ''
   const type = searchParams.get('type') || ''
   const status = searchParams.get('status') || ''
-  const plan = searchParams.get('plan') || ''
 
   const where: Record<string, unknown> = {}
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { code: { contains: search, mode: 'insensitive' } },
-    ]
-  }
+  if (search) where.name = { contains: search }
   if (type) where.type = type
   if (status) where.status = status
-  if (plan) where.plan = plan
 
   const [organizations, total] = await Promise.all([
     db.organization.findMany({
@@ -56,9 +49,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-
     const validation = validateBody(createOrganizationSchema, body)
     if (validation.error) return validation.error
+
     const { name, slug, code, type, primaryColor } = validation.data
 
     const existing = await db.organization.findFirst({
@@ -86,7 +79,7 @@ export async function POST(request: NextRequest) {
         action: 'ORGANIZATION_CREATE',
         entityType: 'Organization',
         entityId: organization.id,
-        details: 'Organisation ' + name + ' créée',
+        details: `Organisation ${name} créée`,
         organizationId: organization.id,
         userId: token.id as string,
       },

@@ -26,23 +26,8 @@ import Link from 'next/link'
 export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { data: session, status } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navItems = getSuperAdminNavItems()
-
-  // Redirect non-admin users
-  if (status === 'loading') {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated' || (session && session.user.role !== 'SUPER_ADMIN' && !session.user.isPlatformAdmin)) {
-    router.push('/login')
-    return null
-  }
 
   const sidebarContent = (
     <div className="flex h-full flex-col">

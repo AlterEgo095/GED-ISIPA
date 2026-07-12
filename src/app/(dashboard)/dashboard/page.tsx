@@ -12,14 +12,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === 'loading') return
-    
+
     if (!session) {
       router.push('/login')
       return
     }
 
-    // SUPER_ADMIN / Platform Admin should go to admin dashboard
-    if (session.user?.role === 'SUPER_ADMIN' || session.user?.isPlatformAdmin) {
+    // SUPER_ADMIN goes to admin dashboard
+    if (session.user?.role === 'SUPER_ADMIN') {
       router.replace('/admin/dashboard')
       return
     }
@@ -27,11 +27,6 @@ export default function DashboardPage() {
     const orgType = session.user?.organizationType
     if (orgType) {
       const route = getDashboardRoute(orgType as never)
-      // Prevent redirect loop: if the route is the same as current path, don't redirect
-      if (route === '/dashboard') {
-        // INSTITUTION and NGO types map to /dashboard - just render the page instead of redirecting
-        return
-      }
       router.replace(route)
     }
   }, [session, status, router])

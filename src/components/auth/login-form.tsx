@@ -39,8 +39,19 @@ export function LoginForm() {
           : result.error)
         setLoading(false)
       } else if (result?.ok) {
-        // Wait for session to be established then redirect
-        window.location.href = '/dashboard'
+        // Fetch session to determine role-based redirect
+        try {
+          const sessionRes = await fetch('/api/auth/session')
+          const sessionData = await sessionRes.json()
+          if (sessionData?.user?.role === 'SUPER_ADMIN') {
+            window.location.href = '/admin/dashboard'
+          } else {
+            window.location.href = '/dashboard'
+          }
+        } catch {
+          // Fallback to /dashboard if session fetch fails
+          window.location.href = '/dashboard'
+        }
       } else {
         setLoading(false)
       }
@@ -92,7 +103,10 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="orgCode">Code organisation (optionnel)</Label>
+            <Label htmlFor="orgCode">
+              Code organisation{' '}
+              <span className="text-xs font-normal text-muted-foreground">(requis pour les utilisateurs d&#39;organisation)</span>
+            </Label>
             <Input
               id="orgCode"
               type="text"
@@ -101,7 +115,7 @@ export function LoginForm() {
               onChange={(e) => setOrgCode(e.target.value.toUpperCase())}
             />
             <p className="text-xs text-muted-foreground">
-              Format: AEIP-UNI-XXXXXX, AEIP-HOS-XXXXXX, etc.
+              Les super-administrateurs peuvent laisser ce champ vide. Format : AEIP-UNI-XXXXXX, AEIP-HOS-XXXXXX, etc.
             </p>
           </div>
 

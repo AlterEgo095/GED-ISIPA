@@ -99,7 +99,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         userId, 
         content, 
         parentId: parentId || null, 
-        mentions: allMentions,
+        mentions: JSON.stringify(allMentions),
+        organizationId: orgId,
       },
       include: {
         user: { select: { id: true, name: true, email: true } },

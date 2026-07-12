@@ -1,43 +1,31 @@
-import type { DocumentStatus, Classification, DocumentType, Role, OrganizationType, AuditAction, ModuleStatus, OrganizationStatus, SubscriptionPlan, SubscriptionStatus, RetentionPolicy } from '@prisma/client'
+import type { DocumentStatus, Classification, DocumentType, Role, OrganizationType, AuditAction, ModuleStatus, OrganizationStatus, SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
 
 // ============ DOCUMENT STATUS ============
 export const statusLabels: Record<DocumentStatus, string> = {
   DRAFT: 'Brouillon',
-  PENDING_REVIEW: 'En attente de revision',
-  IN_REVIEW: 'En cours de revision',
-  PENDING_APPROVAL: 'En attente d\u2019approbation',
-  PENDING_REVISION: 'Revision demandee',
-  APPROVED: 'Approuve',
-  PUBLISHED: 'Publie',
-  ARCHIVED: 'Archive',
-  REJECTED: 'Rejete',
-  DESTROYED: 'Detruit',
+  PENDING_REVIEW: 'En attente de révision',
+  APPROVED: 'Approuvé',
+  PUBLISHED: 'Publié',
+  ARCHIVED: 'Archivé',
+  REJECTED: 'Rejeté',
 }
 
 export const statusColors: Record<DocumentStatus, string> = {
   DRAFT: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
   PENDING_REVIEW: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-  IN_REVIEW: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  PENDING_APPROVAL: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
-  PENDING_REVISION: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
   APPROVED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
   PUBLISHED: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
   ARCHIVED: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
   REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  DESTROYED: 'bg-zinc-800 text-zinc-300 dark:bg-zinc-900 dark:text-zinc-400',
 }
 
 export const statusDotColors: Record<DocumentStatus, string> = {
   DRAFT: 'bg-gray-400',
   PENDING_REVIEW: 'bg-amber-400',
-  IN_REVIEW: 'bg-blue-400',
-  PENDING_APPROVAL: 'bg-indigo-400',
-  PENDING_REVISION: 'bg-orange-400',
   APPROVED: 'bg-emerald-400',
   PUBLISHED: 'bg-teal-400',
   ARCHIVED: 'bg-slate-400',
   REJECTED: 'bg-red-400',
-  DESTROYED: 'bg-zinc-600',
 }
 
 // ============ CLASSIFICATION ============
@@ -57,7 +45,7 @@ export const classificationColors: Record<Classification, string> = {
 
 // ============ DOCUMENT TYPES ============
 export const typeLabels: Record<DocumentType, string> = {
-  ACADEMIC_RECORD: 'Dossier Academique',
+  ACADEMIC_RECORD: 'Dossier Académique',
   ADMINISTRATIVE: 'Administratif',
   FINANCIAL: 'Financier',
   CORRESPONDENCE: 'Correspondance',
@@ -66,8 +54,8 @@ export const typeLabels: Record<DocumentType, string> = {
   CERTIFICATE: 'Certificat',
   MEMO: 'Note de Service',
   POLICY: 'Politique',
-  MEDICAL_RECORD: 'Dossier Medical',
-  LEGAL_BRIEF: 'Memoire Juridique',
+  MEDICAL_RECORD: 'Dossier Médical',
+  LEGAL_BRIEF: 'Mémoire Juridique',
   INVOICE: 'Facture',
   PROPOSAL: 'Proposition',
   OTHER: 'Autre',
@@ -82,8 +70,8 @@ export const roleLabels: Record<Role, string> = {
   VIEWER: 'Observateur',
   DEAN: 'Doyen',
   PROFESSOR: 'Professeur',
-  DOCTOR: 'Medecin',
-  NURSE: 'Infirmier(ere)',
+  DOCTOR: 'Médecin',
+  NURSE: 'Infirmier(ère)',
   LAWYER: 'Avocat(e)',
   PARALEGAL: 'Assistant(e) Juridique',
   CFO: 'Directeur Financier',
@@ -110,8 +98,8 @@ export const roleColors: Record<Role, string> = {
 
 // ============ ORGANIZATION TYPES ============
 export const organizationTypeLabels: Record<OrganizationType, string> = {
-  UNIVERSITY: 'Universite',
-  HOSPITAL: 'Hopital',
+  UNIVERSITY: 'Université',
+  HOSPITAL: 'Hôpital',
   COMPANY: 'Entreprise',
   GOVERNMENT: 'Gouvernement',
   SME: 'PME',
@@ -136,13 +124,13 @@ export const orgStatusLabels: Record<OrganizationStatus, string> = {
   ACTIVE: 'Actif',
   SUSPENDED: 'Suspendu',
   TRIAL: 'Essai',
-  CHURNED: 'Resilie',
+  CHURNED: 'Résilié',
 }
 
 // ============ SUBSCRIPTION ============
 export const planLabels: Record<SubscriptionPlan, string> = {
   FREE: 'Gratuit',
-  STARTER: 'Debutant',
+  STARTER: 'Débutant',
   PROFESSIONAL: 'Professionnel',
   ENTERPRISE: 'Entreprise',
 }
@@ -150,7 +138,7 @@ export const planLabels: Record<SubscriptionPlan, string> = {
 export const subscriptionStatusLabels: Record<SubscriptionStatus, string> = {
   ACTIVE: 'Actif',
   PAST_DUE: 'En retard',
-  CANCELED: 'Annule',
+  CANCELED: 'Annulé',
   TRIAL: 'Essai',
 }
 
@@ -167,81 +155,113 @@ export const moduleStatusColors: Record<ModuleStatus, string> = {
   INACTIVE: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
 }
 
-// ============ RETENTION POLICY ============
-export const retentionPolicyLabels: Record<RetentionPolicy, string> = {
-  SHORT_TERM: 'Court terme (1-3 ans)',
-  MEDIUM_TERM: 'Moyen terme (3-7 ans)',
-  LONG_TERM: 'Long terme (7-30 ans)',
-  PERMANENT: 'Permanent',
-}
-
 // ============ AUDIT ACTIONS ============
 export const actionLabels: Record<AuditAction, string> = {
-  CREATE: 'Creation',
+  CREATE: 'Création',
   READ: 'Consultation',
   UPDATE: 'Modification',
   DELETE: 'Suppression',
   ARCHIVE: 'Archivage',
   RESTORE: 'Restauration',
-  DOWNLOAD: 'Telechargement',
+  DOWNLOAD: 'Téléchargement',
   SHARE: 'Partage',
   APPROVE: 'Approbation',
   REJECT: 'Rejet',
   LOGIN: 'Connexion',
-  LOGOUT: 'Deconnexion',
+  LOGOUT: 'Déconnexion',
   MODULE_ACTIVATE: 'Activation Module',
   MODULE_SUSPEND: 'Suspension Module',
-  WORKFLOW_EXECUTE: 'Execution Workflow',
-  ORGANIZATION_CREATE: 'Creation Organisation',
+  WORKFLOW_EXECUTE: 'Exécution Workflow',
+  ORGANIZATION_CREATE: 'Création Organisation',
   ORGANIZATION_SUSPEND: 'Suspension Organisation',
-  USER_CREATED: 'Creation Utilisateur',
-  USER_VALIDATED: 'Validation Utilisateur',
-  USER_REJECTED: 'Rejet Utilisateur',
-  USER_SUSPENDED: 'Suspension Utilisateur',
-  USER_ACTIVATED: 'Activation Utilisateur',
-  ACCOUNT_APPROVE: 'Approbation Compte',
-  ACCOUNT_REJECT: 'Rejet Compte',
-  ACCOUNT_SUSPEND: 'Suspension Compte',
-  REQUEST_REVISION: 'Demande Revision',
-  DESTROY: 'Destruction',
-  RESTORE_DELETED: 'Restauration Corbeille',
-  PERMANENT_DELETE: 'Suppression Definitive',
-  VERSION_UPLOAD: 'Upload Version',
-  COMMENT_ADD: 'Ajout Commentaire',
-  COMMENT_RESOLVE: 'Resolution Commentaire',
-  ANNOTATION_ADD: 'Ajout Annotation',
-  SHARE_CREATE: 'Creation Partage',
-  SHARE_ACCESS: 'Acces Partage',
-  METADATA_UPDATE: 'Mise a jour Metadonnees',
-  TAG_ASSIGN: 'Assignation Tag',
-  FOLDER_CREATE: 'Creation Dossier',
-  FOLDER_MOVE: 'Deplacement Dossier',
-  PREVIEW: 'Previsualisation',
+  API_KEY_CREATE: 'Création Clé API',
+  API_KEY_REVOKE: 'Révocation Clé API',
+  WEBHOOK_FIRE: 'Déclenchement Webhook',
+  PLUGIN_INSTALL: 'Installation Plugin',
+  PLUGIN_UNINSTALL: 'Désinstallation Plugin',
+  CAMPUS_CREATE: 'Création Campus',
+  SUBSCRIPTION_CHANGE: 'Changement Abonnement',
 }
 
 // ============ MODULE KEYS ============
 export const moduleLabels: Record<string, string> = {
   RH: 'Ressources Humaines',
-  ACADEMIC: 'Academique',
-  LIBRARY: 'Bibliotheque',
+  ACADEMIC: 'Académique',
+  LIBRARY: 'Bibliothèque',
   RESEARCH: 'Recherche',
-  MEDICAL: 'Medical',
+  MEDICAL: 'Médical',
   PHARMACY: 'Pharmacie',
   LABORATORY: 'Laboratoire',
   FINANCE: 'Finance',
   CRM: 'CRM',
   PROJECT: 'Projets',
-  PROCEDURE: 'Procedures',
+  PROCEDURE: 'Procédures',
   ARCHIVE: 'Archivage',
-  COMPLIANCE: 'Conformite',
+  COMPLIANCE: 'Conformité',
   LEGAL: 'Juridique',
   BILLING: 'Facturation',
 }
 
 // ============ PLAN PRICING ============
 export const planPricing: Record<SubscriptionPlan, { price: number; maxUsers: number; maxStorage: number }> = {
-  FREE: { price: 0, maxUsers: 5, maxStorage: 536870912 },
-  STARTER: { price: 29, maxUsers: 15, maxStorage: 2147483648 },
-  PROFESSIONAL: { price: 79, maxUsers: 50, maxStorage: 10737418240 },
-  ENTERPRISE: { price: 199, maxUsers: -1, maxStorage: -1 },
+  FREE: { price: 0, maxUsers: 5, maxStorage: 536870912 }, // 512MB
+  STARTER: { price: 29, maxUsers: 15, maxStorage: 2147483648 }, // 2GB
+  PROFESSIONAL: { price: 79, maxUsers: 50, maxStorage: 10737418240 }, // 10GB
+  ENTERPRISE: { price: 199, maxUsers: -1, maxStorage: -1 }, // unlimited
+}
+
+// ============ MISSION 6.0 — SaaS LABELS ============
+import type { ApiKeyStatus, WebhookEvent, WebhookStatus, IntegrationType, IntegrationStatus, UsageType } from '@prisma/client'
+
+export const apiKeyStatusLabels: Record<ApiKeyStatus, string> = {
+  ACTIVE: 'Actif',
+  REVOKED: 'Révoqué',
+  EXPIRED: 'Expiré',
+}
+
+export const webhookEventLabels: Record<WebhookEvent, string> = {
+  DOCUMENT_CREATED: 'Document créé',
+  DOCUMENT_UPDATED: 'Document modifié',
+  DOCUMENT_APPROVED: 'Document approuvé',
+  DOCUMENT_ARCHIVED: 'Document archivé',
+  WORKFLOW_COMPLETED: 'Workflow terminé',
+  USER_CREATED: 'Utilisateur créé',
+  USER_DEACTIVATED: 'Utilisateur désactivé',
+  SUBSCRIPTION_CHANGED: 'Abonnement modifié',
+  AI_PROCESS_COMPLETED: 'Traitement IA terminé',
+}
+
+export const webhookStatusLabels: Record<WebhookStatus, string> = {
+  ACTIVE: 'Actif',
+  PAUSED: 'En pause',
+  FAILED: 'En échec',
+}
+
+export const integrationTypeLabels: Record<IntegrationType, string> = {
+  SLACK: 'Slack',
+  EMAIL_SMTP: 'Email SMTP',
+  S3_STORAGE: 'Amazon S3',
+  GOOGLE_DRIVE: 'Google Drive',
+  ONEDRIVE: 'OneDrive',
+  WEBDAV: 'WebDAV',
+  LDAP: 'LDAP / Active Directory',
+  SAML_SSO: 'SAML SSO',
+}
+
+export const integrationStatusLabels: Record<IntegrationStatus, string> = {
+  CONNECTED: 'Connecté',
+  DISCONNECTED: 'Déconnecté',
+  ERROR: 'Erreur',
+  PENDING: 'En attente',
+}
+
+export const usageTypeLabels: Record<UsageType, string> = {
+  API_CALL: 'Appels API',
+  DOCUMENT_UPLOAD: 'Uploads documents',
+  AI_OCR: 'OCR IA',
+  AI_EMBEDDING: 'Embeddings IA',
+  AI_CHAT: 'Chat IA',
+  AI_CLASSIFICATION: 'Classification IA',
+  STORAGE: 'Stockage',
+  USER_SEAT: 'Sièges utilisateur',
 }

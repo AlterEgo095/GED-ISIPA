@@ -2,15 +2,9 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
-import { validateTransition } from '@/lib/document-lifecycle'
+import { hasPermission } from '@/lib/permissions'
 import type { Role } from '@prisma/client'
 
-/**
- * POST /api/documents/[id]/restore
- * Transition: ARCHIVED → PUBLISHED
- * Updated: Restored documents return to PUBLISHED (not DRAFT) since they were
- * archived from a published/approved state. This preserves the lifecycle integrity.
- */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (!token) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
@@ -20,16 +14,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const role = token.role as Role
   const userId = token.id as string
 
+  if (!hasPermission(role, 'documents', 'restore')) {
+    return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
+  }
+
   const doc = await db.document.findFirst({ where: { id, organizationId: orgId } })
   if (!doc) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
 
-  // Use lifecycle state machine for validation
-  const validation = validateTransition(doc.status, 'restore', role, doc.isDeleted)
-  if (!validation.valid) {
-    return NextResponse.json({ error: validation.error }, { status: 400 })
+  if (!doc.isArchived) {
+    return NextResponse.json({ error: 'Le document n\'est pas archivé' }, { status: 400 })
   }
 
-  // Restore to PUBLISHED (the proper lifecycle target for archive→restore)
   const document = await db.document.update({
     where: { id },
     data: {
@@ -37,15 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       archivedAt: null,
       archivedBy: null,
       archiveRef: null,
-      status: (doc.previousStatus as any) || 'PUBLISHED',
-      previousStatus: null,
-      // Reset destruction approval since document is being restored
-      destructionApproved: false,
-      destructionApprovedBy: null,
-    },
-    include: {
-      author: { select: { id: true, name: true, email: true } },
-      department: { select: { id: true, name: true, code: true } },
+      status: 'DRAFT',
     },
   })
 
@@ -54,14 +41,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       action: 'RESTORE',
       entityType: 'Document',
       entityId: id,
-      details: `Document "${doc.title}" restauré depuis les archives vers le statut Publié`,
+      details: `Document "${doc.title}" restauré`,
       organizationId: orgId,
       userId,
       documentId: id,
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-      userAgent: request.headers.get('user-agent') || null,
     },
   })
 
-  return NextResponse.json({ document })
+  return NextResponse.json(document)
 }

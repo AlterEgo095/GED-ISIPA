@@ -1,0 +1,39 @@
+{
+  "name": "GED-ISIPA",
+  "short_name": "GED-ISIPA",
+  "description": "Plateforme de Gestion Électronique de Documents - ISIPA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Documents",
+      "short_name": "Documents",
+      "url": "/documents",
+      "description": "Accéder aux documents"
+    },
+    {
+      "name": "Recherche",
+      "short_name": "Recherche",
+      "url": "/documents",
+      "description": "Rechercher un document"
+    },
+    {
+      "name": "Notifications",
+      "short_name": "Notifs",
+      "url": "/notifications",
+      "description": "Voir les notifications"
+    }
+  ]
+}

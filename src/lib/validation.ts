@@ -41,11 +41,52 @@ export const createDocumentSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
+export const updateDocumentSchema = z.object({
+  title: z.string().min(1, 'Le titre est requis').max(200).optional(),
+  description: z.string().max(1000).nullable().optional(),
+  type: z.enum([
+    'ACADEMIC_RECORD', 'ADMINISTRATIVE', 'FINANCIAL', 'CORRESPONDENCE',
+    'REPORT', 'CONTRACT', 'CERTIFICATE', 'MEMO', 'POLICY',
+    'MEDICAL_RECORD', 'LEGAL_BRIEF', 'INVOICE', 'PROPOSAL', 'OTHER',
+  ]).optional(),
+  classification: z.enum(['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']).optional(),
+  departmentId: z.string().min(1, 'Le département est requis').optional(),
+  tags: z.string().max(500).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  folderId: z.string().nullable().optional(),
+})
+
 // ===== Workflow Validation =====
 export const updateWorkflowSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).nullable().optional(),
   isActive: z.boolean().optional(),
+})
+
+// ===== Organization Validation =====
+export const createOrganizationSchema = z.object({
+  name: z.string().min(1, 'Le nom est requis').max(100),
+  slug: z.string().min(1, 'Le slug est requis').max(50).regex(/^[a-z0-9-]+$/, 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets'),
+  code: z.string().min(1, 'Le code est requis').max(50),
+  type: z.enum(['UNIVERSITY', 'HOSPITAL', 'COMPANY', 'GOVERNMENT', 'SME', 'INSTITUTION', 'NGO', 'LAW_FIRM']),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Couleur hex invalide').optional(),
+})
+
+export const updateOrganizationSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'TRIAL', 'CHURNED']).optional(),
+  plan: z.enum(['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE']).optional(),
+  maxUsers: z.number().int().optional(),
+  maxStorage: z.number().int().optional(),
+})
+
+// ===== Department Validation =====
+export const createDepartmentSchema = z.object({
+  name: z.string().min(1, 'Le nom est requis').max(100),
+  code: z.string().min(1, 'Le code est requis').max(10),
+  description: z.string().max(500).optional(),
 })
 
 // ===== Settings Validation =====
@@ -76,78 +117,3 @@ export function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { data: 
   }
   return { data: result.data, error: null }
 }
-
-// ===== Organization Validation =====
-export const createOrganizationSchema = z.object({
-  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères').max(200),
-  slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/, 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets'),
-  code: z.string().min(2).max(20).regex(/^[A-Z0-9]+$/, 'Le code doit être en majuscules et chiffres uniquement'),
-  type: z.enum(['UNIVERSITY', 'HOSPITAL', 'COMPANY', 'GOVERNMENT', 'SME', 'INSTITUTION', 'NGO', 'LAW_FIRM']),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Couleur hex invalide').optional(),
-})
-
-export const updateOrganizationSchema = z.object({
-  name: z.string().min(2).max(200).optional(),
-  slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/).optional(),
-  logo: z.string().url().nullable().optional(),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-  accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
-  settings: z.record(z.string(), z.unknown()).optional(),
-  status: z.enum(['ACTIVE', 'SUSPENDED', 'TRIAL', 'CHURNED']).optional(),
-  plan: z.enum(['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE']).optional(),
-  maxUsers: z.number().int().positive().optional(),
-  maxStorage: z.number().int().positive().optional(),
-})
-
-// ===== Department Validation =====
-export const createDepartmentSchema = z.object({
-  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères').max(100),
-  code: z.string().min(1).max(20).regex(/^[A-Z0-9-]+$/, 'Le code doit être en majuscules'),
-  description: z.string().max(500).optional(),
-})
-
-// ===== Workflow Validation =====
-export const createWorkflowSchema = z.object({
-  name: z.string().min(1, 'Le nom du workflow est requis').max(100),
-  description: z.string().max(500).nullable().optional(),
-  states: z.array(z.object({
-    name: z.string().min(1).max(50),
-    isInitial: z.boolean(),
-    isFinal: z.boolean(),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  })).optional(),
-  transitions: z.array(z.object({
-    from: z.string(),
-    to: z.string(),
-    name: z.string().min(1).max(50),
-    allowedRoles: z.array(z.string()),
-  })).optional(),
-})
-
-// ===== Workflow Execute Validation =====
-export const executeWorkflowSchema = z.object({
-  transitionId: z.string().min(1, 'transitionId requis'),
-  documentId: z.string().min(1, 'documentId requis'),
-})
-
-// ===== Organization Module Action Validation =====
-export const moduleActionSchema = z.object({
-  moduleKey: z.string().min(1, 'moduleKey requis'),
-  action: z.enum(['activate', 'suspend', 'deactivate'], { message: 'Action invalide' }),
-})
-
-// ===== Admin Account Action Validation =====
-export const accountActionSchema = z.object({
-  userId: z.string().min(1, 'userId requis'),
-  action: z.enum(['APPROVE', 'REJECT', 'SUSPEND'], { message: 'Action invalide (APPROVE, REJECT, SUSPEND)' }),
-})
-
-// ===== User ID Param Validation =====
-export const idParamSchema = z.object({
-  id: z.string().min(1, 'ID requis'),
-})
-
-// ===== Search Validation =====
-export const searchSchema = z.object({
-  q: z.string().min(2).max(200).optional(),
-})
