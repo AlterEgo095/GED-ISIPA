@@ -20,8 +20,12 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-
   reactStrictMode: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb',
+    },
+  },
   async headers() {
     return [
       {
@@ -33,4 +37,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

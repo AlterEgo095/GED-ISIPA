@@ -1,116 +1,63 @@
-import { Prisma } from '@prisma/client'
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
-import type { NextRequest } from 'next/server'
+import { db } from '@/lib/db'
 import { hasPermission } from '@/lib/permissions'
-import { createDocumentSchema } from '@/lib/validation'
 import { saveFile } from '@/lib/storage'
-import type { Role } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
-  // Authenticate user
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
-  if (!token) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  }
-
-  const role = token.role as Role
-  if (!hasPermission(role, 'documents', 'create')) {
-    return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
-  }
-
-  const orgId = token.organizationId as string
-  const userId = token.id as string
-
   try {
-    // Parse multipart form data
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+    if (!token) return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    const role = token.role as string
+    const orgId = token.organizationId as string
+    const userId = token.id as string
+    if (!hasPermission(role as any, 'documents', 'create')) {
+      return NextResponse.json({ error: 'Permission refusee' }, { status: 403 })
+    }
     const formData = await request.formData()
     const file = formData.get('file') as File | null
-
-    if (!file) {
-      return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
-    }
-
-    // Extract text fields from form data
     const title = formData.get('title') as string
-    const description = formData.get('description') as string
+    const description = (formData.get('description') as string) || ''
     const type = formData.get('type') as string
-    const classification = formData.get('classification') as string
+    const classification = (formData.get('classification') as string) || 'INTERNAL'
     const departmentId = formData.get('departmentId') as string
-    const tags = formData.get('tags') as string
-
-    // Validate fields using the existing Zod schema
-    const validation = createDocumentSchema.safeParse({
-      title,
-      description: description || undefined,
-      type,
-      classification: classification || undefined,
-      departmentId,
-      tags: tags || undefined,
-    })
-
-    if (!validation.success) {
-      const firstError = validation.error.issues[0]
-      const message = firstError?.message || 'Données invalides'
-      return NextResponse.json(
-        { error: message, details: validation.error.issues },
-        { status: 400 },
-      )
-    }
-
-    const validatedData = validation.data
-
-    // Save file to disk using storage utility
-    const fileResult = await saveFile(orgId, file, file.name)
-
-    // Generate unique document reference
+    const tags = (formData.get('tags') as string) || ''
+    const retentionPolicy = formData.get('retentionPolicy') as string | null
+    const folderId = formData.get('folderId') as string | null
+    if (!file) return NextResponse.json({ error: 'Fichier requis' }, { status: 400 })
+    if (!title) return NextResponse.json({ error: 'Titre requis' }, { status: 400 })
+    if (!type) return NextResponse.json({ error: 'Type de document requis' }, { status: 400 })
+    if (!departmentId) return NextResponse.json({ error: 'Departement requis' }, { status: 400 })
+    const saved = await saveFile(orgId, file, file.name)
     const reference = `DOC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-
-    // Create document record in Prisma with REAL file metadata
+    let destroyAt: Date | null = null
+    if (retentionPolicy === 'SHORT_TERM') destroyAt = new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000)
+    else if (retentionPolicy === 'MEDIUM_TERM') destroyAt = new Date(Date.now() + 7 * 365 * 24 * 60 * 60 * 1000)
+    else if (retentionPolicy === 'LONG_TERM') destroyAt = new Date(Date.now() + 30 * 365 * 24 * 60 * 60 * 1000)
     const document = await db.document.create({
       data: {
-        title: validatedData.title,
-        reference,
-        description: validatedData.description || null,
-        type: validatedData.type,
-        classification: validatedData.classification || 'INTERNAL',
-        status: 'DRAFT',
-        filePath: fileResult.filePath,
-        fileName: file.name,
-        fileSize: fileResult.fileSize,
-        mimeType: fileResult.mimeType,
-        fileHash: fileResult.fileHash,
-        version: 1,
-        tags: validatedData.tags || '',
-        metadata: Prisma.JsonNull,
-        organizationId: orgId,
-        authorId: userId,
-        departmentId: validatedData.departmentId,
+        title, description, reference, type: type as any, classification: classification as any,
+        filePath: saved.filePath, fileName: file.name, fileSize: saved.fileSize,
+        mimeType: saved.mimeType, fileHash: saved.fileHash, version: 1, tags,
+        organizationId: orgId, authorId: userId, departmentId,
+        retentionPolicy: retentionPolicy as any, destroyAt, folderId: folderId || null, status: 'DRAFT',
       },
-      include: {
-        author: { select: { id: true, name: true, email: true } },
-        department: { select: { id: true, name: true, code: true } },
-        workflowState: { select: { id: true, name: true, color: true } },
-      },
+      include: { author: { select: { id: true, name: true, email: true } }, department: { select: { id: true, name: true, code: true } } },
     })
-
-    // Create audit log entry for document creation
+    await db.documentVersion.create({
+      data: { documentId: document.id, version: 1, filePath: saved.filePath, fileName: file.name,
+        fileSize: saved.fileSize, fileHash: saved.fileHash, mimeType: saved.mimeType,
+        changeType: 'CREATE', changeLog: 'Creation du document', createdBy: userId },
+    })
     await db.auditLog.create({
-      data: {
-        action: 'CREATE',
-        entityType: 'Document',
-        entityId: document.id,
-        details: `Document "${validatedData.title}" importé (${fileResult.fileSize} octets, ${fileResult.mimeType})`,
-        organizationId: orgId,
-        userId,
-        documentId: document.id,
-      },
+      data: { action: 'CREATE', entityType: 'Document', entityId: document.id,
+        details: `Document cree: ${title} (${reference})`, organizationId: orgId, userId,
+        documentId: document.id, ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
+        userAgent: request.headers.get('user-agent') || null },
     })
-
-    return NextResponse.json(document, { status: 201 })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur lors de l\'importation'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ document }, { status: 201 })
+  } catch (error: any) {
+    console.error('Upload error:', error)
+    return NextResponse.json({ error: error.message || 'Erreur lors de l upload' }, { status: 500 })
   }
 }

@@ -40,7 +40,7 @@ enum OrganizationStatus {
   CHURNED
 }
 
-// ============ RBAC ROLES (14+ roles) ============
+// ============ RBAC ROLES ============
 enum Role {
   SUPER_ADMIN
   ORG_ADMIN
@@ -58,120 +58,7 @@ enum Role {
   CIVIL_SERVANT
 }
 
-// ============ ORGANIZATION ============
-model Organization {
-  id              String             @id @default(cuid())
-  name            String
-  slug            String             @unique
-  code            String             @unique
-  type            OrganizationType
-  status          OrganizationStatus @default(TRIAL)
-  plan            SubscriptionPlan   @default(FREE)
-
-  // Branding
-  logo            String?
-  primaryColor    String             @default("#0d9488")
-  accentColor     String?
-
-  // Settings (JSON)
-  settings        Json               @default("{}")
-
-  // Subscription
-  trialEndsAt     DateTime?
-  subscriptionEndsAt DateTime?
-  maxUsers        Int                @default(10)
-  maxStorage      Int                @default(1073741824)
-
-  // Timestamps
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  // Soft delete
-  isDeleted       Boolean            @default(false)
-  deletedAt       DateTime?
-  deletedBy       String?
-
-  // Relations
-  users           User[]
-  departments     Department[]
-  documents       Document[]
-  modules         OrganizationModule[]
-  workflows       Workflow[]
-  subscriptions   Subscription[]
-  auditLogs       AuditLog[]
-  recordHistory   RecordHistory[]
-}
-
-// ============ USER ============
-model User {
-  id             String       @id @default(cuid())
-  email          String       @unique
-  name           String
-  password       String
-  role           Role         @default(VIEWER)
-
-  // Multi-tenant
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-
-  // Department
-  departmentId   String?
-  department     Department?  @relation(fields: [departmentId], references: [id])
-
-  // Status
-  isActive       Boolean      @default(true)
-  lastLogin      DateTime?
-
-  // Account management
-  isPlatformAdmin   Boolean      @default(false)
-  accountStatus     AccountStatus @default(ACTIVE)
-  emailVerified     Boolean      @default(false)
-
-  // Timestamps
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  // Soft delete
-  isDeleted      Boolean      @default(false)
-  deletedAt      DateTime?
-  deletedBy      String?
-
-  // Relations
-  documents      Document[]
-  auditLogs      AuditLog[]
-  accessLogs     AccessLog[]
-  notifications  Notification[]
-  resets         PasswordReset[]
-}
-
-// ============ DEPARTMENT ============
-model Department {
-  id             String       @id @default(cuid())
-  name           String
-  code           String
-  description    String?
-
-  // Multi-tenant
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-
-  // Timestamps
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  // Soft delete
-  isDeleted      Boolean      @default(false)
-  deletedAt      DateTime?
-  deletedBy      String?
-
-  // Relations
-  users          User[]
-  documents      Document[]
-
-  @@unique([organizationId, code])
-}
-
-// ============ DOCUMENT ============
+// ============ DOCUMENT LIFECYCLE ============
 enum DocumentType {
   ACADEMIC_RECORD
   ADMINISTRATIVE
@@ -192,10 +79,14 @@ enum DocumentType {
 enum DocumentStatus {
   DRAFT
   PENDING_REVIEW
+  IN_REVIEW
+  PENDING_APPROVAL
+  PENDING_REVISION
   APPROVED
   PUBLISHED
   ARCHIVED
   REJECTED
+  DESTROYED
 }
 
 enum Classification {
@@ -205,184 +96,22 @@ enum Classification {
   RESTRICTED
 }
 
-model Document {
-  id              String         @id @default(cuid())
-  title           String
-  reference       String         @unique
-  description     String?
-  type            DocumentType
-  status          DocumentStatus @default(DRAFT)
-  classification  Classification @default(INTERNAL)
-
-  // File info
-  filePath        String
-  fileName        String
-  fileSize        Int
-  mimeType        String
-  fileHash        String
-
-  // Versioning
-  version         Int            @default(1)
-  tags            String         @default("")
-  metadata        Json?
-
-  // Multi-tenant
-  organizationId  String
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-
-  // Relations
-  authorId        String
-  author          User           @relation(fields: [authorId], references: [id])
-  departmentId    String
-  department      Department     @relation(fields: [departmentId], references: [id])
-
-  // Workflow
-  workflowStateId String?
-  workflowState   WorkflowState? @relation(fields: [workflowStateId], references: [id])
-
-  // Archive
-  isArchived      Boolean        @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  archiveRef      String?
-  retentionPeriod Int?
-  expiresAt       DateTime?
-
-  // Timestamps
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  // Soft delete
-  isDeleted       Boolean        @default(false)
-  deletedAt       DateTime?
-  deletedBy       String?
-
-  // Relations
-  versions        DocumentVersion[]
-  auditLogs       AuditLog[]
-  accessLogs      AccessLog[]
+enum RetentionPolicy {
+  SHORT_TERM
+  MEDIUM_TERM
+  LONG_TERM
+  PERMANENT
 }
 
-// ============ DOCUMENT VERSION ============
-model DocumentVersion {
-  id         String   @id @default(cuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id])
-  version    Int
-  filePath   String
-  fileName   String
-  fileSize   Int
-  fileHash   String
-  changeLog  String?
-  createdBy  String
-  createdAt  DateTime @default(now())
+enum DocumentVersionChangeType {
+  CREATE
+  UPDATE
+  MINOR_EDIT
+  MAJOR_REVISION
+  RESTORE
 }
 
-// ============ WORKFLOW ENGINE ============
-model Workflow {
-  id             String           @id @default(cuid())
-  name           String
-  description    String?
-  isActive       Boolean          @default(true)
-
-  // Multi-tenant
-  organizationId String
-  organization   Organization     @relation(fields: [organizationId], references: [id])
-
-  // Config
-  initialStateId String?
-
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  // Soft delete
-  isDeleted      Boolean          @default(false)
-  deletedAt      DateTime?
-  deletedBy      String?
-
-  // Relations
-  states         WorkflowState[]
-  transitions    WorkflowTransition[]
-}
-
-model WorkflowState {
-  id           String       @id @default(cuid())
-  workflowId   String
-  workflow     Workflow     @relation(fields: [workflowId], references: [id])
-  name         String
-  isInitial    Boolean      @default(false)
-  isFinal      Boolean      @default(false)
-  color        String       @default("#6b7280")
-  order        Int          @default(0)
-
-  // Relations
-  documents        Document[]
-  fromTransitions  WorkflowTransition[] @relation("FromTransitions")
-  toTransitions    WorkflowTransition[] @relation("ToTransitions")
-}
-
-model WorkflowTransition {
-  id             String        @id @default(cuid())
-  workflowId     String
-  workflow       Workflow      @relation(fields: [workflowId], references: [id])
-  fromStateId    String
-  fromState      WorkflowState @relation("FromTransitions", fields: [fromStateId], references: [id])
-  toStateId      String
-  toState        WorkflowState @relation("ToTransitions", fields: [toStateId], references: [id])
-  name           String
-  allowedRoles   Json          @default("[]")
-  condition      String?
-}
-
-// ============ MODULE ENGINE ============
-enum ModuleStatus {
-  ACTIVE
-  SUSPENDED
-  INACTIVE
-}
-
-model OrganizationModule {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  moduleKey      String
-  name           String
-  description    String?
-  status         ModuleStatus @default(INACTIVE)
-  config         Json         @default("{}")
-  activatedAt    DateTime?
-
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@unique([organizationId, moduleKey])
-}
-
-// ============ SUBSCRIPTION/BILLING ============
-enum SubscriptionStatus {
-  ACTIVE
-  PAST_DUE
-  CANCELED
-  TRIAL
-}
-
-model Subscription {
-  id              String             @id @default(cuid())
-  organizationId  String
-  organization    Organization       @relation(fields: [organizationId], references: [id])
-  plan            SubscriptionPlan
-  status          SubscriptionStatus @default(TRIAL)
-  currentPeriodStart DateTime
-  currentPeriodEnd  DateTime
-  amount          Float              @default(0)
-  currency        String             @default("USD")
-  stripeSessionId String?
-
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-}
-
-// ============ AUDIT LOG ============
+// ============ AUDIT ACTIONS ============
 enum AuditAction {
   CREATE
   READ
@@ -409,27 +138,475 @@ enum AuditAction {
   ACCOUNT_APPROVE
   ACCOUNT_REJECT
   ACCOUNT_SUSPEND
+  REQUEST_REVISION
+  DESTROY
+  RESTORE_DELETED
+  PERMANENT_DELETE
+  VERSION_UPLOAD
+  COMMENT_ADD
+  COMMENT_RESOLVE
+  ANNOTATION_ADD
+  SHARE_CREATE
+  SHARE_ACCESS
+  METADATA_UPDATE
+  TAG_ASSIGN
+  FOLDER_CREATE
+  FOLDER_MOVE
+  PREVIEW
 }
 
+enum ModuleStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIAL
+}
+
+// ============ ORGANIZATION ============
+model Organization {
+  id              String             @id @default(cuid())
+  name            String
+  slug            String             @unique
+  code            String             @unique
+  type            OrganizationType
+  status          OrganizationStatus @default(TRIAL)
+  plan            SubscriptionPlan   @default(FREE)
+  logo            String?
+  primaryColor    String             @default("#0d9488")
+  accentColor     String?
+  settings        Json               @default("{}")
+  trialEndsAt     DateTime?
+  subscriptionEndsAt DateTime?
+  maxUsers        Int                @default(10)
+  maxStorage      Int                @default(1073741824)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  isDeleted       Boolean            @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  users           User[]
+  departments     Department[]
+  documents       Document[]
+  modules         OrganizationModule[]
+  workflows       Workflow[]
+  subscriptions   Subscription[]
+  auditLogs       AuditLog[]
+  recordHistory   RecordHistory[]
+  folders         Folder[]
+  tags            DocumentTag[]
+}
+
+// ============ USER ============
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String
+  password       String
+  role           Role         @default(VIEWER)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  departmentId   String?
+  department     Department?  @relation(fields: [departmentId], references: [id])
+  isActive       Boolean      @default(true)
+  lastLogin      DateTime?
+  isPlatformAdmin   Boolean      @default(false)
+  accountStatus     AccountStatus @default(ACTIVE)
+  emailVerified     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?
+
+  documents      Document[]
+  auditLogs      AuditLog[]
+  accessLogs     AccessLog[]
+  notifications  Notification[]
+  resets         PasswordReset[]
+  comments       DocumentComment[]
+  annotations    DocumentAnnotation[]
+}
+
+// ============ DEPARTMENT ============
+model Department {
+  id             String       @id @default(cuid())
+  name           String
+  code           String
+  description    String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?
+  users          User[]
+  documents      Document[]
+
+  @@unique([organizationId, code])
+}
+
+// ============ DOCUMENT ============
+model Document {
+  id              String          @id @default(cuid())
+  title           String
+  reference       String          @unique
+  description     String?
+  type            DocumentType
+  status          DocumentStatus  @default(DRAFT)
+  classification  Classification  @default(INTERNAL)
+
+  // File info
+  filePath        String
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  fileHash        String
+
+  // Versioning
+  version         Int             @default(1)
+  tags            String          @default("")
+  metadata        Json?
+
+  // Multi-tenant
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+  authorId        String
+  author          User            @relation(fields: [authorId], references: [id])
+  departmentId    String
+  department      Department      @relation(fields: [departmentId], references: [id])
+
+  // Workflow
+  workflowStateId String?
+  workflowState   WorkflowState?  @relation(fields: [workflowStateId], references: [id])
+
+  // Archive
+  isArchived      Boolean         @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
+  archiveRef      String?
+  retentionPeriod Int?
+  expiresAt       DateTime?
+
+  // Retention & Destruction
+  retentionPolicy    RetentionPolicy?
+  destroyAt          DateTime?
+  destroyedAt        DateTime?
+  destroyedBy        String?
+  destructionApproved    Boolean   @default(false)
+  destructionApprovedBy  String?
+
+  // Tracking
+  lastAccessedAt   DateTime?
+  downloadCount    Int             @default(0)
+  viewCount        Int             @default(0)
+
+  // Folder hierarchy
+  folderId         String?
+  folder           Folder?         @relation(fields: [folderId], references: [id])
+
+  // Lifecycle review
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  reviewComment    String?
+  rejectedBy       String?
+  rejectedAt       DateTime?
+  rejectionReason  String?
+
+  // Timestamps
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Soft delete
+  isDeleted        Boolean         @default(false)
+  deletedAt        DateTime?
+  deletedBy        String?
+
+  // Relations
+  versions         DocumentVersion[]
+  auditLogs        AuditLog[]
+  accessLogs       AccessLog[]
+  comments         DocumentComment[]
+  shares           DocumentShare[]
+  annotations      DocumentAnnotation[]
+  metadataEntries  DocumentMetadata[]
+  documentTags     DocumentTagAssignment[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, isDeleted])
+  @@index([organizationId, isArchived])
+  @@index([authorId])
+  @@index([departmentId])
+  @@index([folderId])
+  @@index([createdAt])
+  @@index([classification])
+}
+
+// ============ DOCUMENT VERSION ============
+model DocumentVersion {
+  id                String                    @id @default(cuid())
+  documentId        String
+  document          Document                  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version           Int
+  filePath          String
+  fileName          String
+  fileSize          Int
+  fileHash          String
+  mimeType          String                    @default("application/octet-stream")
+  changeType        DocumentVersionChangeType @default(UPDATE)
+  previousVersionId String?
+  changeLog         String?
+  createdBy         String
+  createdAt         DateTime                  @default(now())
+
+  @@index([documentId, version])
+  @@index([createdBy])
+}
+
+// ============ FOLDER ============
+model Folder {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  parentId       String?
+  parent         Folder?      @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Folder[]     @relation("FolderHierarchy")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdBy      String
+  color          String       @default("#6b7280")
+  icon           String?
+  order          Int          @default(0)
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  documents      Document[]
+
+  @@index([organizationId, parentId])
+  @@index([organizationId, isDeleted])
+}
+
+// ============ DOCUMENT COMMENT ============
+model DocumentComment {
+  id          String            @id @default(cuid())
+  documentId  String
+  document    Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  parentId    String?
+  parent      DocumentComment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: SetNull)
+  replies     DocumentComment[] @relation("CommentThread")
+  content     String
+  isResolved  Boolean           @default(false)
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  mentions    Json              @default("[]")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([documentId, createdAt])
+  @@index([userId])
+  @@index([isResolved])
+}
+
+// ============ DOCUMENT SHARE ============
+model DocumentShare {
+  id            String    @id @default(cuid())
+  documentId    String
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sharedBy      String
+  sharedWith    String?
+  shareType     String    @default("LINK")
+  link          String?   @unique
+  password      String?
+  expiresAt     DateTime?
+  downloadLimit Int?
+  downloadCount Int       @default(0)
+  permissions   Json      @default("[\"READ\"]")
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([documentId])
+  @@index([sharedBy])
+  @@index([link])
+  @@index([expiresAt])
+}
+
+// ============ DOCUMENT ANNOTATION ============
+model DocumentAnnotation {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  page        Int      @default(1)
+  type        String   @default("HIGHLIGHT")
+  position    Json
+  content     String?
+  color       String   @default("#ffff00")
+  isResolved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([documentId, page])
+  @@index([userId])
+}
+
+// ============ DOCUMENT METADATA ============
+model DocumentMetadata {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  key         String
+  value       String
+  type        String   @default("TEXT")
+  required    Boolean  @default(false)
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([documentId, key])
+  @@index([documentId])
+}
+
+// ============ DOCUMENT TAG ============
+model DocumentTag {
+  id             String       @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  color          String       @default("#6b7280")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  documents      DocumentTagAssignment[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model DocumentTagAssignment {
+  id         String       @id @default(cuid())
+  documentId String
+  document   Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        DocumentTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedBy String
+  assignedAt DateTime     @default(now())
+
+  @@unique([documentId, tagId])
+  @@index([tagId])
+}
+
+// ============ WORKFLOW ENGINE ============
+model Workflow {
+  id             String           @id @default(cuid())
+  name           String
+  description    String?
+  isActive       Boolean          @default(true)
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  initialStateId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?
+  deletedBy      String?
+  states         WorkflowState[]
+  transitions    WorkflowTransition[]
+}
+
+model WorkflowState {
+  id           String       @id @default(cuid())
+  workflowId   String
+  workflow     Workflow     @relation(fields: [workflowId], references: [id])
+  name         String
+  isInitial    Boolean      @default(false)
+  isFinal      Boolean      @default(false)
+  color        String       @default("#6b7280")
+  order        Int          @default(0)
+  documents        Document[]
+  fromTransitions  WorkflowTransition[] @relation("FromTransitions")
+  toTransitions    WorkflowTransition[] @relation("ToTransitions")
+}
+
+model WorkflowTransition {
+  id             String        @id @default(cuid())
+  workflowId     String
+  workflow       Workflow      @relation(fields: [workflowId], references: [id])
+  fromStateId    String
+  fromState      WorkflowState @relation("FromTransitions", fields: [fromStateId], references: [id])
+  toStateId      String
+  toState        WorkflowState @relation("ToTransitions", fields: [toStateId], references: [id])
+  name           String
+  allowedRoles   Json          @default("[]")
+  condition      String?
+}
+
+// ============ MODULE ENGINE ============
+model OrganizationModule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  moduleKey      String
+  name           String
+  description    String?
+  status         ModuleStatus @default(INACTIVE)
+  config         Json         @default("{}")
+  activatedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, moduleKey])
+}
+
+// ============ SUBSCRIPTION/BILLING ============
+model Subscription {
+  id              String             @id @default(cuid())
+  organizationId  String
+  organization    Organization       @relation(fields: [organizationId], references: [id])
+  plan            SubscriptionPlan
+  status          SubscriptionStatus @default(TRIAL)
+  currentPeriodStart DateTime
+  currentPeriodEnd  DateTime
+  amount          Float              @default(0)
+  currency        String             @default("USD")
+  stripeSessionId String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+// ============ AUDIT LOG ============
 model AuditLog {
   id             String      @id @default(cuid())
   action         AuditAction
   entityType     String
   entityId       String
   details        String
-
-  // Multi-tenant
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
-
   userId         String
   user           User        @relation(fields: [userId], references: [id])
   documentId     String?
   document       Document?   @relation(fields: [documentId], references: [id])
-
   ipAddress      String?
   userAgent      String?
   createdAt      DateTime    @default(now())
+
+  @@index([organizationId, action])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // ============ ACCESS LOG ============
@@ -442,6 +619,9 @@ model AccessLog {
   action     String
   ipAddress  String?
   createdAt  DateTime @default(now())
+
+  @@index([documentId])
+  @@index([userId])
 }
 
 // ============ NOTIFICATION ============
@@ -455,6 +635,8 @@ model Notification {
   isRead     Boolean  @default(false)
   link       String?
   createdAt  DateTime @default(now())
+
+  @@index([userId, isRead])
 }
 
 // ============ PASSWORD RESET ============
@@ -468,9 +650,7 @@ model PasswordReset {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-// ============ SYSTEM SETTINGS ============
-
-// ============ RECORD HISTORY (Versioning) ============
+// ============ RECORD HISTORY ============
 model RecordHistory {
   id             String   @id @default(cuid())
   organizationId String
@@ -494,5 +674,3 @@ model SystemSetting {
   key   String @unique
   value String
 }
-
-
