@@ -109,7 +109,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const existing = await db.document.findFirst({ where: { id, organizationId: orgId, isDeleted: false } })
   if (!existing) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
 
-  await softDelete('document', { id }, token.id as string)
+  await db.document.update({ where: { id }, data: { isDeleted: true, deletedAt: new Date(), deletedBy: token.id as string, previousStatus: existing.status } })
 
   await db.auditLog.create({
     data: {
