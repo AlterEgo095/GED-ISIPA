@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
+import { logAdminAction, getClientInfo } from '@/lib/admin-audit'
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -45,6 +46,17 @@ export async function POST(request: NextRequest) {
       },
     })
     
+    const clientInfo = getClientInfo(request)
+    await logAdminAction({
+      action: 'CAMPUS_CREATE',
+      entityType: 'Campus',
+      entityId: campus.id,
+      details: `Campus "${campus.name}" créé pour l'organisation ${campus.organizationId}`,
+      organizationId: campus.organizationId,
+      userId: token.id as string,
+      ...clientInfo,
+    })
+
     return NextResponse.json({ success: true, campus })
   } catch (error: any) {
     if (error.code === 'P2002') {

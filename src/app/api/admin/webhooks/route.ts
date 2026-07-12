@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
+import { logAdminAction, getClientInfo } from '@/lib/admin-audit'
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -61,6 +62,17 @@ export async function POST(request: NextRequest) {
       },
     })
     
+    const clientInfo = getClientInfo(request)
+    await logAdminAction({
+      action: 'WEBHOOK_FIRE',
+      entityType: 'Webhook',
+      entityId: webhook.id,
+      details: `Webhook "${webhook.name}" créé`,
+      organizationId: webhook.organizationId || (token.organizationId as string),
+      userId: token.id as string,
+      ...clientInfo,
+    })
+
     return NextResponse.json({ success: true, webhook: { id: webhook.id, name: webhook.name, secret } })
   } catch (error) {
     console.error('Webhook creation error:', error)

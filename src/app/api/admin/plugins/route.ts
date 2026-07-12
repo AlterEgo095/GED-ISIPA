@@ -1,3 +1,4 @@
+import { logAdminAction, getClientInfo } from '@/lib/admin-audit'
 import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
@@ -44,5 +45,16 @@ export async function POST(request: NextRequest) {
   }
 
   await initializeBuiltinPlugins()
-  return NextResponse.json({ success: true, message: 'Plugins intégrés initialisés' })
+  const clientInfo = getClientInfo(request)
+    await logAdminAction({
+      action: 'PLUGIN_INSTALL',
+      entityType: 'Plugin',
+      entityId: plugin.id,
+      details: `Plugin "${plugin.name}" installé`,
+      organizationId: token.organizationId as string,
+      userId: token.id as string,
+      ...clientInfo,
+    })
+
+    return NextResponse.json({ success: true, message: 'Plugins intégrés initialisés' })
 }

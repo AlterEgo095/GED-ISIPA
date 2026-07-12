@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
+import { logAdminAction, getClientInfo } from '@/lib/admin-audit'
 import { generateApiKey, hashApiKey } from '@/lib/saas/api-auth'
 
 export async function GET(request: NextRequest) {
@@ -59,6 +60,18 @@ export async function POST(request: NextRequest) {
       },
     })
     
+    // Audit log
+    const clientInfo = getClientInfo(request)
+    await logAdminAction({
+      action: 'API_KEY_CREATE',
+      entityType: 'ApiKey',
+      entityId: apiKey.id,
+      details: `Clé API "${name}" créée pour l'organisation ${organizationId}`,
+      organizationId,
+      userId: token.id as string,
+      ...clientInfo,
+    })
+
     // Return the raw key only once - it cannot be retrieved again
     return NextResponse.json({ 
       success: true, 

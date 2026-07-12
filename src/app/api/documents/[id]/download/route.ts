@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
-import { fileExists } from '@/lib/storage'
+import { fileExists, readDecryptedFile } from '@/lib/storage'
 import fs from 'fs'
 import path from 'path'
 import type { Role } from '@prisma/client'
@@ -48,6 +48,9 @@ export async function GET(
       return NextResponse.json({ error: 'Fichier introuvable sur le serveur' }, { status: 404 })
     }
 
+    // Read and decrypt file (handles both encrypted and plaintext)
+    const fileBuffer = await readDecryptedFile(absolutePath)
+
     // Create audit log for download
     await db.auditLog.create({
       data: {
@@ -73,37 +76,15 @@ export async function GET(
       },
     })
 
-    // Stream file back to client
-    const stat = await fs.promises.stat(absolutePath)
-    const fileStream = fs.createReadStream(absolutePath)
-
-    // Convert Node.js ReadStream to Web ReadableStream
-    const readableStream = new ReadableStream({
-      start(controller) {
-        fileStream.on('data', (chunk: Buffer) => {
-          controller.enqueue(new Uint8Array(chunk))
-        })
-        fileStream.on('end', () => {
-          controller.close()
-        })
-        fileStream.on('error', (err: Error) => {
-          controller.error(err)
-        })
-      },
-      cancel() {
-        fileStream.destroy()
-      },
-    })
-
     // Encode filename for Content-Disposition (handle non-ASCII)
     const encodedFileName = encodeURIComponent(document.fileName)
 
-    return new NextResponse(readableStream, {
+    return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
         'Content-Type': document.mimeType || 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
-        'Content-Length': stat.size.toString(),
+        'Content-Length': fileBuffer.length.toString(),
         'Cache-Control': 'private, no-cache',
       },
     })

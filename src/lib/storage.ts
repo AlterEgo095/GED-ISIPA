@@ -1,4 +1,5 @@
 import fs from 'fs/promises'
+import { encryptBuffer, decryptBuffer, isEncryptedFile, getEncryptedPath } from './encryption'
 import path from 'path'
 import crypto from 'crypto'
 
@@ -122,11 +123,21 @@ export async function saveFile(
   // Compute hash before writing
   const fileHash = computeHash(buffer)
 
-  // Write file to disk
-  await fs.writeFile(filePath, buffer)
+  // Encrypt file at rest (AES-256-GCM)
+  const isEncryptionEnabled = process.env.ENCRYPTION_ENABLED !== 'false'
+  let finalFilePath = filePath
+  let encryptedBuffer: Buffer | null = null
+
+  if (isEncryptionEnabled) {
+    encryptedBuffer = encryptBuffer(buffer)
+    finalFilePath = getEncryptedPath(filePath)
+    await fs.writeFile(finalFilePath, encryptedBuffer)
+  } else {
+    await fs.writeFile(filePath, buffer)
+  }
 
   return {
-    filePath,
+    filePath: finalFilePath,
     fileSize: buffer.length,
     fileHash,
     mimeType,
@@ -139,12 +150,20 @@ export function getFilePath(orgId: string, storedName: string): string {
   return path.join(UPLOADS_ROOT, orgId, storedName)
 }
 
-/** Delete a file from disk */
+/** Delete a file from disk (handles both encrypted and plain files) */
 export async function deleteFile(filePath: string): Promise<void> {
   try {
     await fs.unlink(filePath)
   } catch {
     // File might already be deleted — silently ignore
+  }
+  // Also try deleting the encrypted variant if it exists
+  if (!isEncryptedFile(filePath)) {
+    try {
+      await fs.unlink(getEncryptedPath(filePath))
+    } catch {
+      // Ignore
+    }
   }
 }
 
@@ -156,4 +175,13 @@ export async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/** Read and decrypt a file, returning the plaintext Buffer */
+export async function readDecryptedFile(filePath: string): Promise<Buffer> {
+  if (isEncryptedFile(filePath)) {
+    const encryptedData = await fs.readFile(filePath)
+    return decryptBuffer(encryptedData)
+  }
+  return fs.readFile(filePath)
 }
