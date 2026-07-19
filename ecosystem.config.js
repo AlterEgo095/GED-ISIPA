@@ -1,8 +1,8 @@
 module.exports = {
   apps: [{
     name: 'ged-isipa',
-    script: '/opt/ged-isipa/node_modules/.bin/next',
-    args: 'start -p 3020',
+    script: '.next/standalone/server.js',
+    args: '',
     cwd: '/opt/ged-isipa',
     exec_interpreter: 'node',
     exec_mode: 'fork',
@@ -12,7 +12,6 @@ module.exports = {
       NODE_ENV: 'production',
       PORT: '3020',
       HOSTNAME: '0.0.0.0',
-      // Secrets are loaded from .env file, NOT hardcoded here
     },
     autorestart: true,
     max_memory_restart: '512M',

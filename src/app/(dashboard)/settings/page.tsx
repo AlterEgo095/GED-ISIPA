@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Settings, Moon, Sun, Palette } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { PushNotificationSettings } from '@/components/pwa/push-notification-settings'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -99,6 +100,7 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      <PushNotificationSettings />
     </div>
   )
 }

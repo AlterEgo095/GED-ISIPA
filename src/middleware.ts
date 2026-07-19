@@ -128,7 +128,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // API route protection
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && pathname !== '/api/health') {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && pathname !== '/api/health' && pathname !== '/api/push/vapid') {
     if (!token) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }

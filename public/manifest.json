@@ -1,39 +1,51 @@
 {
-  "name": "GED-ISIPA",
+  "id": "/?source=pwa",
+  "name": "GED-ISIPA — Plateforme de Gestion Électronique de Documents",
   "short_name": "GED-ISIPA",
-  "description": "Plateforme de Gestion Électronique de Documents - ISIPA",
-  "start_url": "/",
+  "description": "Plateforme de Gestion Électronique de Documents Multi-Tenant SaaS — AEIP Enterprise",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#0d9488",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ],
+  "orientation": "any",
+  "lang": "fr",
+  "dir": "ltr",
   "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
   "shortcuts": [
     {
       "name": "Documents",
       "short_name": "Documents",
-      "url": "/documents",
-      "description": "Accéder aux documents"
+      "url": "/documents?source=shortcut",
+      "description": "Accéder aux documents",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Recherche",
+      "name": "Recherche avancée",
       "short_name": "Recherche",
-      "url": "/documents",
+      "url": "/documents?search=advanced&source=shortcut",
       "description": "Rechercher un document"
     },
     {
       "name": "Notifications",
       "short_name": "Notifs",
-      "url": "/notifications",
+      "url": "/notifications?source=shortcut",
       "description": "Voir les notifications"
+    },
+    {
+      "name": "Nouveau document",
+      "short_name": "Upload",
+      "url": "/documents?upload=1&source=shortcut",
+      "description": "Téléverser un document"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

@@ -62,11 +62,66 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get('user-agent') || null },
     })
 
-    // Run AI pipeline in background if requested (non-blocking)
+    // Run extraction pipeline in background if requested (non-blocking)
     let aiResult: { status: string; message: string } | null = null
-    if (runAi !== 'false' && process.env.AI_API_KEY) {
-      // AI pipeline managed via superadmin Config IA
-      aiResult = { status: 'available', message: 'IA disponible via configuration admin' }
+    if (runAi !== 'false') {
+      const docId = document.id
+      const docFilePath = saved.filePath
+      const docMimeType = saved.mimeType
+      const docTitle = title
+      const docType = type
+      const docDeptId = departmentId
+      const docTags = tags
+      ;(async () => {
+        try {
+          const { extractDocumentContent, chunkText } = await import('@/lib/ai/extractor')
+          const { indexDocumentChunks } = await import('@/lib/ai/qdrant')
+          const pathMod = await import('path')
+          const osMod = await import('os')
+          const { writeFile, mkdir } = await import('fs/promises')
+          const { readDecryptedFile } = await import('@/lib/storage')
+
+          let extractPath = pathMod.isAbsolute(docFilePath) ? docFilePath : pathMod.join(process.cwd(), docFilePath)
+          if (extractPath.endsWith('.enc')) {
+            const buffer = await readDecryptedFile(extractPath)
+            const tmpDir = pathMod.join(osMod.tmpdir(), 'ged-upload-extract')
+            await mkdir(tmpDir, { recursive: true })
+            extractPath = pathMod.join(tmpDir, docId + '-' + (file.name || 'doc'))
+            await writeFile(extractPath, buffer)
+          }
+
+          const result = await extractDocumentContent(extractPath, docMimeType, { ocrLang: 'fra+eng' })
+
+          const { db } = await import('@/lib/db')
+          await db.documentMetadata.upsert({
+            where: { documentId_key: { documentId: docId, key: 'extracted_text' } },
+            update: { value: result.text.slice(0, 50000), type: 'TEXT' },
+            create: { documentId: docId, key: 'extracted_text', value: result.text.slice(0, 50000), type: 'TEXT' },
+          })
+          await db.documentMetadata.upsert({
+            where: { documentId_key: { documentId: docId, key: 'extraction_method' } },
+            update: { value: result.method, type: 'TEXT' },
+            create: { documentId: docId, key: 'extraction_method', value: result.method, type: 'TEXT' },
+          })
+          await db.documentMetadata.upsert({
+            where: { documentId_key: { documentId: docId, key: 'word_count' } },
+            update: { value: String(result.text.split(/\s+/).filter(Boolean).length), type: 'NUMBER' },
+            create: { documentId: docId, key: 'word_count', value: String(result.text.split(/\s+/).filter(Boolean).length), type: 'NUMBER' },
+          })
+
+          if (result.text.length > 10) {
+            const chunks = chunkText(result.text, 1500, 200)
+            await indexDocumentChunks({
+              documentId: docId, organizationId: orgId, title: docTitle, type: docType,
+              departmentId: docDeptId, tags: docTags, chunks,
+            })
+          }
+        } catch (e) {
+          console.error('[bg-extract] Failed for doc', docId, e)
+        }
+      })()
+
+      aiResult = { status: 'processing', message: 'Extraction et indexation en arriere-plan' }
     }
 
     return NextResponse.json({ document, ai: aiResult }, { status: 201 })
