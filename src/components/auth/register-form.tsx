@@ -120,7 +120,7 @@ export function RegisterForm() {
               onValueChange={(value) => setFormData({ ...formData, orgType: value as OrganizationType })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez un type" />
+                <SelectValue placeholder="Sélectionner un type" />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(organizationTypeLabels).map(([key, label]) => (

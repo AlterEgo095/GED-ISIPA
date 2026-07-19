@@ -27,8 +27,8 @@ export default function SuperAdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Vue Plateforme</h1>
-        <p className="text-muted-foreground">Statistiques globales de la plateforme AEIP</p>
+        <h1 className="text-2xl font-bold">Vue d'ensemble de la plateforme</h1>
+        <p className="text-muted-foreground">Statistiques globales de la plateforme GED-ISIPA</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

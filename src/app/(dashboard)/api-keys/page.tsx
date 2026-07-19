@@ -431,7 +431,7 @@ export default function ApiKeysPage() {
             Accès API
           </h1>
           <p className="text-muted-foreground">
-            Gérez les clés API de votre organisation — {orgName}
+            Gestion des clés API de votre organisation — {orgName}
           </p>
         </div>
         {hasApiAccess && (
@@ -1149,7 +1149,7 @@ Accept: application/json`}
                 <div className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <p className="text-sm font-medium">Taille maximale de requête</p>
-                    <p className="text-xs text-muted-foreground">Upload de documents</p>
+                    <p className="text-xs text-muted-foreground">Import de documents</p>
                   </div>
                   <Badge variant="secondary" className="text-sm px-3 py-1">
                     10 MB

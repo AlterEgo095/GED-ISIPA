@@ -206,7 +206,7 @@ export async function sendWorkflowNotificationEmail(
       </tr>
     </table>
     <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
-      Ceci est une notification automatique de la plateforme AEIP. Aucune action n'est requise de votre part si ce message ne vous concerne pas.
+      Ceci est une notification automatique de la plateforme GED-ISIPA. Aucune action n'est requise de votre part si ce message ne vous concerne pas.
     </p>
   `
 

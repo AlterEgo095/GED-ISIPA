@@ -142,11 +142,11 @@ function getOrgSpecificNavItems(orgType: OrganizationType): NavItem[] {
 
 export function getSuperAdminNavItems(): NavItem[] {
   return [
-    { label: 'Vue Plateforme', href: '/admin/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
+    { label: "Vue d'ensemble", href: '/admin/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN'] },
     { label: 'Organisations', href: '/admin/organizations', icon: Building2, roles: ['SUPER_ADMIN'] },
     { label: 'Facturation', href: '/admin/billing', icon: CreditCard, roles: ['SUPER_ADMIN'] },
-    { label: 'Analytique', href: '/admin/analytics', icon: BarChart3, roles: ['SUPER_ADMIN'] },
-    { label: 'Modules Plateforme', href: '/admin/modules', icon: Boxes, roles: ['SUPER_ADMIN'] },
+    { label: 'Analyses', href: '/admin/analytics', icon: BarChart3, roles: ['SUPER_ADMIN'] },
+    { label: 'Modules de la plateforme', href: '/admin/modules', icon: Boxes, roles: ['SUPER_ADMIN'] },
     { label: 'Config IA', href: '/admin/ai-config', icon: Brain, roles: ['SUPER_ADMIN'] },
     { label: 'Clés API', href: '/admin/api-keys', icon: Key, roles: ['SUPER_ADMIN'] },
     { label: 'Plugins', href: '/admin/plugins', icon: Puzzle, roles: ['SUPER_ADMIN'] },

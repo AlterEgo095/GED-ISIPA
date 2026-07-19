@@ -378,7 +378,7 @@ export default function SuperAdminApiKeysPage() {
             Clés API
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gérez les clés d&apos;accès API pour les organisations de la plateforme
+            Gestion des clés d&apos;accès API de la plateforme
           </p>
         </div>
 

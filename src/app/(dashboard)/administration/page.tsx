@@ -68,7 +68,7 @@ export default function AdministrationPage() {
             <Building2 className="h-6 w-6" />
             Administration
           </h1>
-          <p className="text-muted-foreground">Gérez les utilisateurs et départements</p>
+          <p className="text-muted-foreground">Gestion des utilisateurs et des départements</p>
         </div>
         <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
           <DialogTrigger asChild>

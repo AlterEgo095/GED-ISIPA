@@ -105,7 +105,7 @@ export function LoginForm() {
           <div className="space-y-2">
             <Label htmlFor="orgCode">
               Code organisation{' '}
-              <span className="text-xs font-normal text-muted-foreground">(requis pour les utilisateurs d&#39;organisation)</span>
+              <span className="text-xs font-normal text-muted-foreground">(requis pour les membres d&#39;une organisation)</span>
             </Label>
             <Input
               id="orgCode"

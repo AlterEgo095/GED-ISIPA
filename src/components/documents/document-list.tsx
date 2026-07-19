@@ -51,6 +51,7 @@ interface DocumentListProps {
   canApprove?: boolean
   canArchive?: boolean
   canEdit?: boolean
+  canDelete?: boolean
 }
 
 export function DocumentList({
@@ -62,6 +63,7 @@ export function DocumentList({
   canApprove = false,
   canArchive = false,
   canEdit = false,
+  canDelete = false,
 }: DocumentListProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
@@ -106,7 +108,7 @@ export function DocumentList({
           <DialogTrigger asChild>
             <Button>
               <Upload className="h-4 w-4 mr-2" />
-              Nouveau
+              Nouveau document
             </Button>
           </DialogTrigger>
           <DialogContent>

@@ -20,8 +20,22 @@ export async function GET(request: NextRequest) {
   const classification = searchParams.get('classification') || ''
   const departmentId = searchParams.get('departmentId') || ''
 
-  const where: Record<string, unknown> = { organizationId: orgId, isArchived: false }
-  if (search) where.title = { contains: search }
+  const isArchived = searchParams.get('isArchived')
+  const where: Record<string, unknown> = { organizationId: orgId }
+  if (isArchived === 'true') {
+    where.isArchived = true
+    where.isDeleted = false
+  } else if (isArchived === 'all') {
+    // no isArchived filter
+  } else {
+    where.isArchived = false
+    where.isDeleted = false
+  }
+  if (search) where.OR = [
+      { title: { contains: search, mode: 'insensitive' } },
+      { reference: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+    ]
   if (status) where.status = status
   if (type) where.type = type
   if (classification) where.classification = classification

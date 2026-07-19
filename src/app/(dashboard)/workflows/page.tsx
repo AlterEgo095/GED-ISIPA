@@ -30,7 +30,7 @@ export default function WorkflowsPage() {
             <Workflow className="h-6 w-6" />
             Workflows
           </h1>
-          <p className="text-muted-foreground">Gérez vos flux de travail documentaire</p>
+          <p className="text-muted-foreground">Gestion de vos flux de travail documentaires</p>
         </div>
         <Button asChild>
           <Link href="/workflows/new">Nouveau workflow</Link>

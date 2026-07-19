@@ -527,7 +527,7 @@ export default function OrgWebhooksPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Webhooks</h1>
             <p className="text-sm text-muted-foreground">
-              Gérez les webhooks pour recevoir des notifications en temps réel sur les événements de la plateforme
+              Gestion des webhooks de votre organisation
             </p>
           </div>
         </div>

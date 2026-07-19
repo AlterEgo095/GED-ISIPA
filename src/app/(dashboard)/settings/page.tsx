@@ -44,7 +44,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Mode sombre</Label>
-              <p className="text-sm text-muted-foreground">Basculer entre le mode clair et sombre</p>
+              <p className="text-sm text-muted-foreground">Basculer entre le mode clair et le mode sombre</p>
             </div>
             <div className="flex items-center gap-2">
               <Sun className="h-4 w-4" />

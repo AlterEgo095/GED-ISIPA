@@ -494,7 +494,7 @@ export default function AiConfigPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Configuration IA</h1>
             <p className="text-sm text-muted-foreground">
-              Gérez les paramètres d&apos;intelligence artificielle de la plateforme
+              Configuration de l&apos;intelligence artificielle de la plateforme
             </p>
           </div>
         </div>

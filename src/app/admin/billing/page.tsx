@@ -11,7 +11,7 @@ export default function SuperAdminBillingPage() {
           <CreditCard className="h-6 w-6" />
           Facturation
         </h1>
-        <p className="text-muted-foreground">Gestion de la facturation plateforme</p>
+        <p className="text-muted-foreground">Gestion de la facturation de la plateforme</p>
       </div>
       <Card>
         <CardContent className="text-center py-12">

@@ -96,7 +96,7 @@ const INTEGRATION_TYPES: Record<
   },
   EMAIL_SMTP: {
     label: 'Email SMTP',
-    description: 'Envoi d\'emails via serveur SMTP',
+    description: 'Envoi d\'emails via un serveur SMTP',
     icon: Mail,
     available: true,
     color: 'text-amber-600 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300',
@@ -389,10 +389,10 @@ export default function IntegrationsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Intégrations Externes
+              Intégrations externes
             </h1>
             <p className="text-muted-foreground mt-1">
-              Gérez les connexions aux services externes pour votre plateforme
+              Gestion des connexions aux services externes de la plateforme
               GED-ISIPA
             </p>
           </div>
@@ -646,7 +646,7 @@ export default function IntegrationsPage() {
                         <StatusBadge status={integration.status} />
 
                         <div className="text-xs text-muted-foreground hidden md:block">
-                          <span className="font-medium">Dernière sync :</span>{' '}
+                          <span className="font-medium">Dernière sync. :</span>{' '}
                           {formatDate(integration.lastSyncAt)}
                         </div>
 
@@ -669,7 +669,7 @@ export default function IntegrationsPage() {
 
                     {/* Mobile sync info */}
                     <div className="mt-2 md:hidden text-xs text-muted-foreground">
-                      <span className="font-medium">Dernière sync :</span>{' '}
+                      <span className="font-medium">Dernière sync. :</span>{' '}
                       {formatDate(integration.lastSyncAt)}
                     </div>
                   </CardContent>

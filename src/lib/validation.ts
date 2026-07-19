@@ -1,21 +1,29 @@
 import { z } from 'zod'
 import { NextResponse } from 'next/server'
 
+// ===== XSS Sanitizer =====
+function sanitize(str: string): string {
+  return str.replace(/<[^>]*>/g, '').trim()
+}
+
+export const sanitizeString = sanitize
+
 // ===== User Validation =====
 export const createUserSchema = z.object({
   email: z.string().email('Email invalide'),
-  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères').max(100),
+  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères').max(100).transform(sanitize),
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   role: z.enum([
     'SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'USER', 'VIEWER',
     'DEAN', 'PROFESSOR', 'DOCTOR', 'NURSE', 'LAWYER', 'PARALEGAL',
     'CFO', 'HR_MANAGER', 'CIVIL_SERVANT',
-  ]).optional(),
+  ]),
+  organizationId: z.string().min(1, 'L\'organisation est requise'),
   departmentId: z.string().optional(),
 })
 
 export const updateUserSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
+  name: z.string().min(2).max(100).transform(sanitize).optional(),
   password: z.string().min(8).optional(),
   role: z.enum([
     'SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'USER', 'VIEWER',
@@ -28,7 +36,7 @@ export const updateUserSchema = z.object({
 
 // ===== Document Validation =====
 export const createDocumentSchema = z.object({
-  title: z.string().min(1, 'Le titre est requis').max(200),
+  title: z.string().min(1, 'Le titre est requis').max(200).transform(sanitize),
   description: z.string().max(1000).optional(),
   type: z.enum([
     'ACADEMIC_RECORD', 'ADMINISTRATIVE', 'FINANCIAL', 'CORRESPONDENCE',
@@ -42,7 +50,7 @@ export const createDocumentSchema = z.object({
 })
 
 export const updateDocumentSchema = z.object({
-  title: z.string().min(1, 'Le titre est requis').max(200).optional(),
+  title: z.string().min(1, 'Le titre est requis').max(200).transform(sanitize).optional(),
   description: z.string().max(1000).nullable().optional(),
   type: z.enum([
     'ACADEMIC_RECORD', 'ADMINISTRATIVE', 'FINANCIAL', 'CORRESPONDENCE',
@@ -65,7 +73,7 @@ export const updateWorkflowSchema = z.object({
 
 // ===== Organization Validation =====
 export const createOrganizationSchema = z.object({
-  name: z.string().min(1, 'Le nom est requis').max(100),
+  name: z.string().min(1, 'Le nom est requis').max(100).transform(sanitize),
   slug: z.string().min(1, 'Le slug est requis').max(50).regex(/^[a-z0-9-]+$/, 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets'),
   code: z.string().min(1, 'Le code est requis').max(50),
   type: z.enum(['UNIVERSITY', 'HOSPITAL', 'COMPANY', 'GOVERNMENT', 'SME', 'INSTITUTION', 'NGO', 'LAW_FIRM']),
@@ -73,7 +81,7 @@ export const createOrganizationSchema = z.object({
 })
 
 export const updateOrganizationSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
+  name: z.string().min(1).max(100).transform(sanitize).optional(),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   status: z.enum(['ACTIVE', 'SUSPENDED', 'TRIAL', 'CHURNED']).optional(),
@@ -84,7 +92,7 @@ export const updateOrganizationSchema = z.object({
 
 // ===== Department Validation =====
 export const createDepartmentSchema = z.object({
-  name: z.string().min(1, 'Le nom est requis').max(100),
+  name: z.string().min(1, 'Le nom est requis').max(100).transform(sanitize),
   code: z.string().min(1, 'Le code est requis').max(10),
   description: z.string().max(500).optional(),
 })

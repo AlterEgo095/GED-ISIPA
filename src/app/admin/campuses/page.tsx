@@ -167,7 +167,7 @@ export default function SuperAdminCampusesPage() {
             Campus
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gérez les campus de toutes les organisations de la plateforme GED-ISIPA
+            Gestion des campus de la plateforme GED-ISIPA
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

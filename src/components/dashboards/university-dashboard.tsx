@@ -25,7 +25,7 @@ export function UniversityDashboard({ stats, recentDocs = [], docsByType = [] }:
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Tableau de Bord — Université</h1>
+        <h1 className="text-2xl font-bold">Tableau de bord — Université</h1>
         <p className="text-muted-foreground">Vue d&apos;ensemble de votre espace académique</p>
       </div>
 
@@ -68,7 +68,7 @@ export function UniversityDashboard({ stats, recentDocs = [], docsByType = [] }:
       <QuickActions
         actions={[
           { label: 'Nouveau dossier', icon: Plus, onClick: () => {} },
-          { label: 'Recherche étudiant', icon: Search, onClick: () => {} },
+          { label: 'Rechercher un étudiant', icon: Search, onClick: () => {} },
           { label: 'Importer document', icon: Upload, onClick: () => {} },
         ]}
       />

@@ -1,13 +1,13 @@
 import type { Role } from '@prisma/client'
 
 export type Resource = 'documents' | 'users' | 'departments' | 'modules' | 'workflows' | 'billing' | 'settings' | 'audit' | 'organizations'
-export type Action = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'reject' | 'archive' | 'restore' | 'publish' | 'manage' | 'export' | 'share'
+export type Action = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'reject' | 'archive' | 'restore' | 'publish' | 'manage' | 'export' | 'share' | 'destroy' | 'request_revision'
 
 type PermissionMatrix = Record<Role, Record<Resource, Action[]>>
 
 const PERMISSION_MATRIX: PermissionMatrix = {
   SUPER_ADMIN: {
-    documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'restore', 'publish', 'manage', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'restore', 'publish', 'manage', 'export', 'share', 'destroy', 'request_revision'],
     users: ['create', 'read', 'update', 'delete', 'manage', 'export'],
     departments: ['create', 'read', 'update', 'delete', 'manage'],
     modules: ['create', 'read', 'update', 'delete', 'manage'],
@@ -18,7 +18,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['create', 'read', 'update', 'delete', 'manage'],
   },
   ORG_ADMIN: {
-    documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'restore', 'publish', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'restore', 'publish', 'export', 'share', 'destroy', 'request_revision'],
     users: ['create', 'read', 'update', 'delete', 'manage'],
     departments: ['create', 'read', 'update', 'delete', 'manage'],
     modules: ['read', 'update'],
@@ -29,7 +29,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   MANAGER: {
-    documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'archive', 'export', 'share', 'request_revision'],
     users: ['read'],
     departments: ['read'],
     modules: ['read'],
@@ -62,7 +62,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   DEAN: {
-    documents: ['create', 'read', 'update', 'approve', 'reject', 'archive', 'publish', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'approve', 'reject', 'archive', 'publish', 'export', 'share', 'request_revision'],
     users: ['read', 'manage'],
     departments: ['read', 'update'],
     modules: ['read'],
@@ -84,7 +84,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   DOCTOR: {
-    documents: ['create', 'read', 'update', 'approve', 'archive', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'approve', 'archive', 'export', 'share', 'request_revision'],
     users: ['read'],
     departments: ['read'],
     modules: ['read'],
@@ -106,7 +106,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   LAWYER: {
-    documents: ['create', 'read', 'update', 'approve', 'archive', 'publish', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'approve', 'archive', 'publish', 'export', 'share', 'request_revision'],
     users: ['read'],
     departments: ['read'],
     modules: ['read'],
@@ -128,7 +128,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   CFO: {
-    documents: ['create', 'read', 'update', 'approve', 'reject', 'archive', 'publish', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'approve', 'reject', 'archive', 'restore', 'publish', 'export', 'share', 'destroy', 'request_revision'],
     users: ['read'],
     departments: ['read'],
     modules: ['read', 'update'],
@@ -139,7 +139,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   HR_MANAGER: {
-    documents: ['create', 'read', 'update', 'approve', 'archive', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'approve', 'archive', 'export', 'share', 'request_revision'],
     users: ['create', 'read', 'update', 'manage'],
     departments: ['read', 'update'],
     modules: ['read'],
@@ -150,7 +150,7 @@ const PERMISSION_MATRIX: PermissionMatrix = {
     organizations: ['read'],
   },
   CIVIL_SERVANT: {
-    documents: ['create', 'read', 'update', 'approve', 'archive', 'publish', 'export', 'share'],
+    documents: ['create', 'read', 'update', 'approve', 'archive', 'publish', 'export', 'share', 'request_revision'],
     users: ['read'],
     departments: ['read'],
     modules: ['read'],

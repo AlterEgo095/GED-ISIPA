@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getToken } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
-import { createOrganizationSchema, validateBody } from '@/lib/validation'
+import { createOrganizationSchema, validateBody, sanitizeString } from '@/lib/validation'
 
 export async function GET(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     if (validation.error) return validation.error
 
     const { name, slug, code, type, primaryColor } = validation.data
+
 
     const existing = await db.organization.findFirst({
       where: { OR: [{ slug }, { code }] },

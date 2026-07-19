@@ -307,7 +307,7 @@ export default function IntegrationsPage() {
             </h1>
             <p className="text-muted-foreground mt-1">
               {isSuperAdmin
-                ? 'Gérez les connexions aux services externes pour toutes les organisations'
+                ? 'Gestion des connexions aux services externes de toutes les organisations'
                 : isOrgAdmin
                   ? 'Consultez les intégrations disponibles pour votre organisation GED-ISIPA'
                   : 'Intégrations externes de la plateforme GED-ISIPA'}

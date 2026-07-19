@@ -6,47 +6,56 @@ import { hasPermission } from '@/lib/permissions'
 import type { Role } from '@prisma/client'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
-  if (!token) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  try {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+    if (!token) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const { id } = await params
-  const orgId = token.organizationId as string
-  const role = token.role as Role
-  const userId = token.id as string
+    const { id } = await params
+    const orgId = token.organizationId as string
+    const role = token.role as Role
+    const userId = token.id as string
 
-  if (!hasPermission(role, 'documents', 'restore')) {
-    return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
+    if (!hasPermission(role, 'documents', 'restore')) {
+      return NextResponse.json({ error: 'Permissions insuffisantes' }, { status: 403 })
+    }
+
+    const doc = await db.document.findFirst({ where: { id, organizationId: orgId } })
+    if (!doc) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
+
+    if (!doc.isArchived) {
+      return NextResponse.json({ error: 'Le document n\'est pas archivé' }, { status: 400 })
+    }
+
+    // Lifecycle: ARCHIVED → PUBLISHED (restore returns to published state)
+    const previousStatus = (doc.previousStatus as string) || 'PUBLISHED'
+
+    const document = await db.document.update({
+      where: { id },
+      data: {
+        isArchived: false,
+        archivedAt: null,
+        archivedBy: null,
+        archiveRef: null,
+        status: previousStatus as any,
+        previousStatus: null,
+      },
+    })
+
+    await db.auditLog.create({
+      data: {
+        action: 'RESTORE',
+        entityType: 'Document',
+        entityId: id,
+        details: `Document "${doc.title}" restauré depuis les archives vers le statut ${previousStatus}`,
+        organizationId: orgId,
+        userId,
+        documentId: id,
+      },
+    })
+
+    return NextResponse.json({ document, restoredStatus: previousStatus })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erreur lors de la restauration'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
-
-  const doc = await db.document.findFirst({ where: { id, organizationId: orgId } })
-  if (!doc) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
-
-  if (!doc.isArchived) {
-    return NextResponse.json({ error: 'Le document n\'est pas archivé' }, { status: 400 })
-  }
-
-  const document = await db.document.update({
-    where: { id },
-    data: {
-      isArchived: false,
-      archivedAt: null,
-      archivedBy: null,
-      archiveRef: null,
-      status: 'DRAFT',
-    },
-  })
-
-  await db.auditLog.create({
-    data: {
-      action: 'RESTORE',
-      entityType: 'Document',
-      entityId: id,
-      details: `Document "${doc.title}" restauré`,
-      organizationId: orgId,
-      userId,
-      documentId: id,
-    },
-  })
-
-  return NextResponse.json(document)
 }

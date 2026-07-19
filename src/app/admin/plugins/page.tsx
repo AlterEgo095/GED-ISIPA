@@ -170,7 +170,7 @@ export default function SuperAdminPluginsPage() {
             Plugins
           </h1>
           <p className="text-muted-foreground">
-            Gérez les plugins disponibles sur la plateforme GED-ISIPA
+            Gestion des plugins de la plateforme GED-ISIPA
           </p>
         </div>
 
@@ -305,7 +305,7 @@ export default function SuperAdminPluginsPage() {
                         <StarRating rating={plugin.rating} />
                         <span className="inline-flex items-center gap-1">
                           <Layers className="h-3.5 w-3.5" />
-                          {plugin.totalInstallations} install.
+                          {plugin.totalInstallations} installations
                         </span>
                       </div>
                     </CardContent>

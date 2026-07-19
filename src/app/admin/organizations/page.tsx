@@ -30,7 +30,7 @@ export default function SuperAdminOrganizationsPage() {
           <Building2 className="h-6 w-6" />
           Organisations
         </h1>
-        <p className="text-muted-foreground">Gérez les organisations de la plateforme</p>
+        <p className="text-muted-foreground">Gestion des organisations de la plateforme</p>
       </div>
 
       <Card>

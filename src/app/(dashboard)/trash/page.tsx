@@ -20,6 +20,7 @@ import {
   Trash2, RotateCcw, Search, MoreHorizontal, AlertTriangle, 
   FileText, Clock, HardDrive, Loader2, XCircle, Filter
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { statusLabels, statusColors, classificationLabels, classificationColors, typeLabels } from '@/lib/constants'
 import type { DocumentStatus, Classification, DocumentType } from '@prisma/client'
 
@@ -115,10 +116,10 @@ export default function TrashPage() {
         await fetchTrash()
       } else {
         const data = await res.json()
-        alert(data.error || 'Erreur lors de la restauration')
+        toast.error(data.error || 'Erreur lors de la restauration')
       }
     } catch (error) {
-      alert('Erreur lors de la restauration')
+      toast.error('Erreur lors de la restauration')
     } finally {
       setActionLoading(null)
     }
@@ -224,7 +225,7 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

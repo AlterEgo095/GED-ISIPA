@@ -11,10 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Separator } from '@/components/ui/separator'
 import { Loader2, ArrowLeft, Building2, Users, FileText, Boxes, Ban, CheckCircle, Pencil, Save, CreditCard, Shield } from 'lucide-react'
 import { organizationTypeLabels, orgStatusLabels, planLabels, roleLabels, planPricing, moduleStatusLabels, moduleLabels } from '@/lib/constants'
 import type { OrganizationType, OrganizationStatus, SubscriptionPlan, Role, ModuleStatus } from '@prisma/client'
+import { toast } from 'sonner'
 
 export default function OrgDetailPage() {
   const params = useParams()
@@ -53,8 +53,8 @@ export default function OrgDetailPage() {
     setSaving(true)
     try {
       const res = await fetch(`/api/organizations/${orgId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-      if (res.ok) { setOrg(await (await fetch(`/api/organizations/${orgId}`)).json()); setEditOpen(false); setPlanOpen(false) }
-      else { const d = await res.json(); alert(d.error || 'Erreur') }
+      if (res.ok) { setOrg(await (await fetch(`/api/organizations/${orgId}`)).json()); setEditOpen(false); setPlanOpen(false); toast.success('Organisation mise à jour') }
+      else { const d = await res.json(); toast.error(d.error || 'Erreur') }
     } finally { setSaving(false) }
   }
 
@@ -63,8 +63,8 @@ export default function OrgDetailPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ moduleKey, action }),
     })
-    if (res.ok) setModules(await (await fetch(`/api/organizations/${orgId}/modules`)).json())
-    else { const d = await res.json(); alert(d.error || 'Erreur') }
+    if (res.ok) { setModules(await (await fetch(`/api/organizations/${orgId}/modules`)).json()); toast.success('Action exécutée') }
+    else { const d = await res.json(); toast.error(d.error || 'Erreur') }
   }
 
   function openEdit() {
@@ -89,33 +89,33 @@ export default function OrgDetailPage() {
   const count = org._count as Record<string, number>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push('/admin/organizations')}><ArrowLeft className="h-5 w-5" /></Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Building2 className="h-6 w-6" />{org.name}</h1>
-          <p className="text-muted-foreground">{org.code} \u2022 {organizationTypeLabels[org.type as OrganizationType]}</p>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><Building2 className="h-6 w-6 text-purple-600" />{org.name}</h1>
+          <p className="text-muted-foreground">{org.code} &bull; {organizationTypeLabels[org.type as OrganizationType]}</p>
         </div>
         <div className="flex gap-2">
-          {org.status === 'ACTIVE' && <Button variant="outline" className="text-orange-600" onClick={() => orgUpdate({ status: 'SUSPENDED' })}><Ban className="mr-2 h-4 w-4" />Suspendre</Button>}
-          {org.status !== 'ACTIVE' && <Button className="bg-green-600 hover:bg-green-700" onClick={() => orgUpdate({ status: 'ACTIVE' })}><CheckCircle className="mr-2 h-4 w-4" />Activer</Button>}
+          {org.status === 'ACTIVE' && <Button variant="outline" className="text-orange-600 border-orange-200 hover:bg-orange-50" onClick={() => orgUpdate({ status: 'SUSPENDED' })}><Ban className="mr-2 h-4 w-4" />Suspendre</Button>}
+          {org.status !== 'ACTIVE' && <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => orgUpdate({ status: 'ACTIVE' })}><CheckCircle className="mr-2 h-4 w-4" />Activer</Button>}
           <Button variant="outline" onClick={openEdit}><Pencil className="mr-2 h-4 w-4" />Modifier</Button>
           <Button variant="outline" onClick={openPlanChange}><CreditCard className="mr-2 h-4 w-4" />Changer plan</Button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card><CardContent className="pt-4"><div className="text-2xl font-bold">{count?.users || 0}</div><p className="text-xs text-muted-foreground">Utilisateurs</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="text-2xl font-bold">{count?.documents || 0}</div><p className="text-xs text-muted-foreground">Documents</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="text-2xl font-bold">{count?.departments || 0}</div><p className="text-xs text-muted-foreground">D\u00e9partements</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><div className="text-2xl font-bold">{org.maxUsers > 0 ? `${org.maxUsers}` : '\u221e'}</div><p className="text-xs text-muted-foreground">Max utilisateurs</p></CardContent></Card>
+        <Card className="card-hover"><CardContent className="pt-4"><div className="text-2xl font-bold text-purple-600">{count?.users || 0}</div><p className="text-xs text-muted-foreground">Utilisateurs</p></CardContent></Card>
+        <Card className="card-hover"><CardContent className="pt-4"><div className="text-2xl font-bold text-purple-600">{count?.documents || 0}</div><p className="text-xs text-muted-foreground">Documents</p></CardContent></Card>
+        <Card className="card-hover"><CardContent className="pt-4"><div className="text-2xl font-bold text-purple-600">{count?.departments || 0}</div><p className="text-xs text-muted-foreground">Départements</p></CardContent></Card>
+        <Card className="card-hover"><CardContent className="pt-4"><div className="text-2xl font-bold text-purple-600">{org.maxUsers > 0 ? `${org.maxUsers}` : '∞'}</div><p className="text-xs text-muted-foreground">Max utilisateurs</p></CardContent></Card>
       </div>
 
-      <Card><CardHeader><CardTitle className="text-base">Informations</CardTitle></CardHeader>
+      <Card className="card-hover"><CardHeader><CardTitle className="text-base">Informations</CardTitle></CardHeader>
         <CardContent><div className="grid grid-cols-3 gap-4 text-sm">
           <div><span className="text-muted-foreground">Statut</span><p><Badge variant={org.status === 'ACTIVE' ? 'default' : 'secondary'}>{orgStatusLabels[org.status as OrganizationStatus]}</Badge></p></div>
           <div><span className="text-muted-foreground">Plan</span><p><Badge variant="outline">{planLabels[org.plan as SubscriptionPlan]}</Badge></p></div>
-          <div><span className="text-muted-foreground">Stockage max</span><p className="font-medium">{org.maxStorage > 0 ? (org.maxStorage / 1073741824).toFixed(1) + ' Go' : 'Illimit\u00e9'}</p></div>
+          <div><span className="text-muted-foreground">Stockage max</span><p className="font-medium">{org.maxStorage > 0 ? (org.maxStorage / 1073741824).toFixed(1) + ' Go' : 'Illimité'}</p></div>
           <div><span className="text-muted-foreground">Couleur primaire</span><div className="flex items-center gap-2"><div className="h-5 w-5 rounded-full border" style={{ backgroundColor: org.primaryColor }} /><span className="font-mono text-xs">{org.primaryColor}</span></div></div>
           <div><span className="text-muted-foreground">Fin d&apos;essai</span><p className="font-medium">{org.trialEndsAt ? new Date(org.trialEndsAt).toLocaleDateString('fr-FR') : '-'}</p></div>
           <div><span className="text-muted-foreground">Fin abonnement</span><p className="font-medium">{org.subscriptionEndsAt ? new Date(org.subscriptionEndsAt).toLocaleDateString('fr-FR') : '-'}</p></div>
@@ -130,17 +130,17 @@ export default function OrgDetailPage() {
         </TabsList>
 
         <TabsContent value="modules"><Card><CardContent className="p-0">
-          <Table><TableHeader><TableRow><TableHead>Module</TableHead><TableHead>Statut</TableHead><TableHead>Activ\u00e9 le</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+          <Table><TableHeader><TableRow><TableHead>Module</TableHead><TableHead>Statut</TableHead><TableHead>Activé le</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
           <TableBody>{modules.map((mod: any) => (
             <TableRow key={mod.id}>
-              <TableCell className="font-medium">{mod.name || moduleLabels[mod.moduleKey] || mod.moduleKey}</TableCell>
+              <TableCell className="font-medium">{mod.name || moduleLabels[mod.moduleKey as keyof typeof moduleLabels] || mod.moduleKey}</TableCell>
               <TableCell><Badge variant={mod.status === 'ACTIVE' ? 'default' : 'secondary'}>{moduleStatusLabels[mod.status as ModuleStatus]}</Badge></TableCell>
               <TableCell className="text-sm text-muted-foreground">{mod.activatedAt ? new Date(mod.activatedAt).toLocaleDateString('fr-FR') : '-'}</TableCell>
               <TableCell>
                 <div className="flex gap-1">
-                  {mod.status !== 'ACTIVE' && <Button size="sm" variant="outline" className="text-green-600" onClick={() => moduleAction(mod.moduleKey, 'activate')}><CheckCircle className="h-3 w-3 mr-1" />Activer</Button>}
-                  {mod.status === 'ACTIVE' && <Button size="sm" variant="outline" className="text-amber-600" onClick={() => moduleAction(mod.moduleKey, 'suspend')}><Ban className="h-3 w-3 mr-1" />Suspendre</Button>}
-                  {mod.status === 'ACTIVE' && <Button size="sm" variant="outline" className="text-red-600" onClick={() => moduleAction(mod.moduleKey, 'deactivate')}><Ban className="h-3 w-3 mr-1" />D\u00e9sactiver</Button>}
+                  {mod.status !== 'ACTIVE' && <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => moduleAction(mod.moduleKey, 'activate')}><CheckCircle className="h-3 w-3 mr-1" />Activer</Button>}
+                  {mod.status === 'ACTIVE' && <Button size="sm" variant="outline" className="text-amber-600 border-amber-200 hover:bg-amber-50" onClick={() => moduleAction(mod.moduleKey, 'suspend')}><Ban className="h-3 w-3 mr-1" />Suspendre</Button>}
+                  {mod.status === 'ACTIVE' && <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => moduleAction(mod.moduleKey, 'deactivate')}><Ban className="h-3 w-3 mr-1" />Désactiver</Button>}
                 </div>
               </TableCell>
             </TableRow>
@@ -150,13 +150,13 @@ export default function OrgDetailPage() {
         </CardContent></Card></TabsContent>
 
         <TabsContent value="users"><Card><CardContent className="p-0">
-          <Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Email</TableHead><TableHead>R\u00f4le</TableHead><TableHead>Statut</TableHead></TableRow></TableHeader>
+          <Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Email</TableHead><TableHead>Rôle</TableHead><TableHead>Statut</TableHead></TableRow></TableHeader>
           <TableBody>{(org.users || []).map((u: any) => (
             <TableRow key={u.id}>
               <TableCell className="font-medium">{u.name}</TableCell>
               <TableCell className="text-sm">{u.email}</TableCell>
               <TableCell><Badge variant="outline">{roleLabels[u.role as Role]}</Badge></TableCell>
-              <TableCell><Badge variant={u.accountStatus === 'ACTIVE' ? 'default' : 'secondary'}>{u.accountStatus}</Badge></TableCell>
+              <TableCell><Badge variant={u.isActive ? 'default' : 'secondary'}>{u.isActive ? 'Actif' : 'Inactif'}</Badge></TableCell>
             </TableRow>
           ))}
           {(!org.users || org.users.length === 0) && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Aucun utilisateur</TableCell></TableRow>}
@@ -164,7 +164,7 @@ export default function OrgDetailPage() {
         </CardContent></Card></TabsContent>
 
         <TabsContent value="audit"><Card><CardContent className="p-0">
-          <Table><TableHeader><TableRow><TableHead>Action</TableHead><TableHead>Utilisateur</TableHead><TableHead>D\u00e9tails</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
+          <Table><TableHeader><TableRow><TableHead>Action</TableHead><TableHead>Utilisateur</TableHead><TableHead>Détails</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
           <TableBody>{auditLogs.map((log: any) => (
             <TableRow key={log.id}>
               <TableCell><Badge variant="outline">{log.action}</Badge></TableCell>
@@ -173,12 +173,11 @@ export default function OrgDetailPage() {
               <TableCell className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleString('fr-FR')}</TableCell>
             </TableRow>
           ))}
-          {auditLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Aucune entr\u00e9e</TableCell></TableRow>}
+          {auditLogs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Aucune entrée</TableCell></TableRow>}
           </TableBody></Table>
         </CardContent></Card></TabsContent>
       </Tabs>
 
-      {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}><DialogContent><DialogHeader><DialogTitle>Modifier l&apos;organisation</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div><Label>Nom</Label><Input value={editName} onChange={e => setEditName(e.target.value)} /></div>
@@ -189,13 +188,12 @@ export default function OrgDetailPage() {
         <DialogFooter><Button variant="outline" onClick={() => setEditOpen(false)}>Annuler</Button><Button onClick={() => orgUpdate({ name: editName, status: editStatus, maxUsers: editMaxUsers, maxStorage: editMaxStorage })} disabled={saving} className="bg-purple-600 hover:bg-purple-700"><Save className="mr-2 h-4 w-4" />Sauvegarder</Button></DialogFooter>
       </DialogContent></Dialog>
 
-      {/* Plan Change Dialog */}
       <Dialog open={planOpen} onOpenChange={setPlanOpen}><DialogContent><DialogHeader><DialogTitle>Changer le plan</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <Select value={selectedPlan} onValueChange={setSelectedPlan}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(planLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v} - {planPricing[k as SubscriptionPlan].price}$</SelectItem>)}</SelectContent></Select>
           {selectedPlan && <div className="p-3 bg-muted rounded-lg text-sm">
-            <p>Max utilisateurs: {planPricing[selectedPlan as SubscriptionPlan].maxUsers > 0 ? planPricing[selectedPlan as SubscriptionPlan].maxUsers : 'Illimit\u00e9'}</p>
-            <p>Max stockage: {planPricing[selectedPlan as SubscriptionPlan].maxStorage > 0 ? (planPricing[selectedPlan as SubscriptionPlan].maxStorage / 1073741824).toFixed(1) + ' Go' : 'Illimit\u00e9'}</p>
+            <p>Max utilisateurs: {planPricing[selectedPlan as SubscriptionPlan].maxUsers > 0 ? planPricing[selectedPlan as SubscriptionPlan].maxUsers : 'Illimité'}</p>
+            <p>Max stockage: {planPricing[selectedPlan as SubscriptionPlan].maxStorage > 0 ? (planPricing[selectedPlan as SubscriptionPlan].maxStorage / 1073741824).toFixed(1) + ' Go' : 'Illimité'}</p>
           </div>}
         </div>
         <DialogFooter><Button variant="outline" onClick={() => setPlanOpen(false)}>Annuler</Button><Button onClick={applyPlan} className="bg-purple-600 hover:bg-purple-700">Appliquer</Button></DialogFooter>

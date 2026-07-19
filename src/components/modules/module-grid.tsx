@@ -47,7 +47,7 @@ export function ModuleGrid({ modules, availableModules, orgType, onAction, isAdm
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Modules</h2>
-        <p className="text-muted-foreground">Gérez les modules disponibles pour votre organisation</p>
+        <p className="text-muted-foreground">Gestion des modules de votre organisation</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

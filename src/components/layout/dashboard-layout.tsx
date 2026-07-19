@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { Toaster } from '@/components/ui/sonner'
 import {
   Menu,
   Search,
@@ -31,6 +32,8 @@ import {
   ChevronLeft,
   Moon,
   Sun,
+  Shield,
+  Sparkles,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { getNavigationItems } from '@/lib/redirection'
@@ -46,6 +49,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
 
   // Redirect SUPER_ADMIN to admin layout
   useEffect(() => {
@@ -66,26 +70,83 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const orgInitials = session?.user?.organizationName?.substring(0, 2).toUpperCase() || 'AE'
+  const orgColor = session?.user?.organizationType ? 'bg-gradient-to-br from-teal-500 to-teal-700' : 'bg-gradient-to-br from-gray-500 to-gray-700'
+
+  // Group nav items into sections
+  const mainNavItems = navItems.filter(item => 
+    ['Documents', 'Archives', 'Corbeille', 'Workflows', 'Modules'].includes(item.label)
+  )
+  const systemNavItems = navItems.filter(item => 
+    ['Audit', 'Administration', 'Notifications', 'Paramètres'].includes(item.label)
+  )
+  const dashboardItem = navItems.find(item => item.label === 'Tableau de bord')
+  const orgTypeLabel = navItems.find(item => ['Académique', 'Médical', 'Entreprise', 'Gouvernemental', 'Juridique', 'Institutionnel', 'ONG', 'PME'].includes(item.label))
+
   const sidebarContent = (
-    <div className="flex h-full flex-col">
-      {/* Org Header */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white font-bold text-sm"
-          style={{ backgroundColor: session?.user?.organizationType ? '#0d9488' : '#6b7280' }}>
-          {session?.user?.organizationName?.substring(0, 2).toUpperCase() || 'AE'}
+    <div className="flex h-full flex-col bg-gradient-to-b from-background to-muted/30">
+      {/* Org Header - Premium */}
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-border/50">
+        <div className={cn(
+          "flex h-11 w-11 items-center justify-center rounded-xl text-white font-bold text-sm shadow-md transition-transform hover:scale-105",
+          orgColor
+        )}>
+          {orgInitials}
         </div>
         {!collapsed && (
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">{session?.user?.organizationName || 'Organisation'}</p>
-            <p className="text-xs text-muted-foreground truncate">{session?.user?.organizationCode}</p>
+          <div className="flex-1 min-w-0 animate-fade-in">
+            <p className="text-sm font-semibold truncate tracking-tight">{session?.user?.organizationName || 'Organisation'}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Shield className="h-3 w-3 text-teal-500" />
+              <p className="text-xs text-muted-foreground truncate">{session?.user?.organizationCode}</p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Nav Items */}
-      <ScrollArea className="flex-1 px-2 py-2">
+      {/* Nav Items - Grouped */}
+      <ScrollArea className="flex-1 px-3 py-3">
         <nav className="space-y-1">
-          {navItems.map((item) => {
+          {/* Dashboard */}
+          {dashboardItem && (
+            <Link
+              href={dashboardItem.href}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                'sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                pathname === dashboardItem.href || pathname?.startsWith(dashboardItem.href + '/')
+                  ? 'active bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300'
+                  : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground'
+              )}
+            >
+              <dashboardItem.icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>{dashboardItem.label}</span>}
+            </Link>
+          )}
+
+          {/* Org Type */}
+          {orgTypeLabel && (
+            <Link
+              href={orgTypeLabel.href}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                'sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                pathname === orgTypeLabel.href || pathname?.startsWith(orgTypeLabel.href + '/')
+                  ? 'active bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300'
+                  : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground'
+              )}
+            >
+              <orgTypeLabel.icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>{orgTypeLabel.label}</span>}
+            </Link>
+          )}
+
+          {/* Separator */}
+          <div className="my-2 mx-2 border-t border-border/50" />
+
+          {/* Main Navigation */}
+          {!collapsed && <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Gestion</p>}
+          {mainNavItems.map((item, idx) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             return (
               <Link
@@ -93,30 +154,58 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                  'sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all stagger-' + (idx + 1),
                   isActive
-                    ? 'bg-teal-100 text-teal-900 dark:bg-teal-900 dark:text-teal-100'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    ? 'active bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300'
+                    : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground'
                 )}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive && "text-teal-600 dark:text-teal-400")} />
+                {!collapsed && <span className={cn(isActive && "font-medium")}>{item.label}</span>}
+                {item.label === 'Corbeille' && !collapsed && (
+                  <span className="ml-auto text-[10px] bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400 px-1.5 py-0.5 rounded-full font-medium">0</span>
+                )}
+              </Link>
+            )
+          })}
+
+          {/* Separator */}
+          <div className="my-2 mx-2 border-t border-border/50" />
+
+          {/* System Navigation */}
+          {!collapsed && <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Système</p>}
+          {systemNavItems.map((item, idx) => {
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  'sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all',
+                  isActive
+                    ? 'active bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300'
+                    : 'text-muted-foreground hover:bg-accent/80 hover:text-foreground'
+                )}
+              >
+                <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive && "text-teal-600 dark:text-teal-400")} />
+                {!collapsed && <span className={cn(isActive && "font-medium")}>{item.label}</span>}
               </Link>
             )
           })}
         </nav>
       </ScrollArea>
 
-      {/* User Section */}
-      <div className="border-t px-3 py-3">
+      {/* User Section - Premium */}
+      <div className="border-t border-border/50 px-3 py-3">
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">
+          <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
+            <AvatarFallback className="text-xs bg-gradient-to-br from-teal-50 to-teal-100 text-teal-700 dark:from-teal-900 dark:to-teal-800 dark:text-teal-300 font-semibold">
               {session?.user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 animate-fade-in">
               <p className="text-sm font-medium truncate">{session?.user?.name}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {role ? roleLabels[role] : 'Utilisateur'}
@@ -129,18 +218,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
+      <Toaster position="bottom-right" richColors closeButton />
+
       {/* Desktop Sidebar */}
       <aside className={cn(
-        'hidden lg:flex flex-col border-r bg-background transition-all duration-200',
-        collapsed ? 'w-16' : 'w-64'
+        'hidden lg:flex flex-col border-r border-border/50 bg-background transition-all duration-300 ease-in-out',
+        collapsed ? 'w-[68px]' : 'w-64'
       )}>
         {sidebarContent}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center py-2 border-t hover:bg-accent transition-colors"
+          className="flex items-center justify-center py-2.5 border-t border-border/50 hover:bg-accent/80 transition-all group"
+          aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'}
         >
-          <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
+          <ChevronLeft className={cn('h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground', collapsed && 'rotate-180')} />
         </button>
       </aside>
 
@@ -153,65 +245,86 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="flex items-center gap-4 border-b px-4 py-3">
+        {/* Top Bar - Premium */}
+        <header className="flex items-center gap-4 border-b border-border/50 px-4 md:px-6 py-3 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
+              <Button variant="ghost" size="icon" className="lg:hidden hover:bg-accent">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
           </Sheet>
 
-          <form onSubmit={handleSearch} className="flex-1 max-w-md">
+          <form onSubmit={handleSearch} className="flex-1 max-w-lg">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className={cn(
+                "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200",
+                searchFocused ? "text-teal-500" : "text-muted-foreground"
+              )} />
               <Input
-                placeholder="Rechercher..."
+                placeholder="Rechercher un document, référence..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                className={cn(
+                  "pl-9 input-premium h-9",
+                  searchFocused && "border-teal-300 dark:border-teal-700"
+                )}
               />
+              {searchFocused && (
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border hidden sm:inline-flex">
+                  Entrée
+                </kbd>
+              )}
             </div>
           </form>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="btn-premium hover:bg-accent"
+              aria-label={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
-            <Button variant="ghost" size="icon" onClick={() => router.push('/notifications')}>
+            <Button variant="ghost" size="icon" onClick={() => router.push('/notifications')} className="btn-premium hover:bg-accent relative" aria-label="Notifications">
               <Bell className="h-4 w-4" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-teal-500 animate-pulse-soft" />
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full btn-premium hover:ring-2 hover:ring-teal-200 dark:hover:ring-teal-800 transition-all">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-gradient-to-br from-teal-50 to-teal-100 text-teal-700 dark:from-teal-900 dark:to-teal-800 dark:text-teal-300 font-semibold text-xs">
                       {session?.user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="flex items-center gap-2 p-2">
-                  <div className="flex flex-col space-y-1">
+              <DropdownMenuContent align="end" className="w-56 animate-scale-in">
+                <div className="flex items-center gap-3 p-3">
+                  <Avatar className="h-10 w-10 ring-2 ring-background">
+                    <AvatarFallback className="bg-gradient-to-br from-teal-50 to-teal-100 text-teal-700 dark:from-teal-900 dark:to-teal-800 dark:text-teal-300 font-semibold text-sm">
+                      {session?.user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col space-y-0.5">
                     <p className="text-sm font-medium">{session?.user?.name}</p>
                     <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/settings')}>
+                <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   Paramètres
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })}>
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })} className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50">
                   <LogOut className="mr-2 h-4 w-4" />
                   Déconnexion
                 </DropdownMenuItem>
@@ -221,8 +334,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="page-enter">
+            {children}
+          </div>
         </main>
       </div>
     </div>

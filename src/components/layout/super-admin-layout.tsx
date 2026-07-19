@@ -37,7 +37,7 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
           AEIP
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">AEIP Platform</p>
+          <p className="text-sm font-semibold">Plateforme GED-ISIPA</p>
           <p className="text-xs text-muted-foreground">Super Admin</p>
         </div>
       </div>
@@ -109,7 +109,7 @@ export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
           </Sheet>
 
           <div className="flex-1">
-            <h2 className="text-lg font-semibold">Administration Plateforme</h2>
+            <h2 className="text-lg font-semibold">Administration de la plateforme</h2>
           </div>
 
           <DropdownMenu>
