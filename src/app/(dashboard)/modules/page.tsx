@@ -47,7 +47,6 @@ export default function ModulesPage() {
       })
 
       if (res.ok) {
-        // Refresh modules
         const data = await fetch('/api/modules').then(r => r.json())
         setModules(data.orgModules || [])
       }

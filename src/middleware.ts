@@ -38,7 +38,7 @@ function checkRateLimit(key: string, limit: number = 10, windowMs: number = 6000
   return true
 }
 
-const protectedRoutes = ['/dashboard', '/documents', '/archives', '/audit', '/administration', '/modules', '/workflows', '/notifications', '/settings', '/admin']
+const protectedRoutes = ['/api-keys', '/webhooks', '/integrations', '/dashboard', '/documents', '/archives', '/audit', '/administration', '/modules', '/workflows', '/notifications', '/settings', '/admin', '/trash']
 const authRoutes = ['/login', '/register']
 
 export async function middleware(request: NextRequest) {
@@ -118,7 +118,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Role-based protection for super admin routes
-  if (token && pathname.startsWith('/admin') && (token.role as string) !== 'SUPER_ADMIN') {
+  if (token && pathname.startsWith('/admin/') && (token.role as string) !== 'SUPER_ADMIN') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -149,6 +149,7 @@ export const config = {
     '/notifications/:path*',
     '/settings/:path*',
     '/admin/:path*',
+    '/trash/:path*',
     '/login',
     '/register',
     '/api/:path*',
