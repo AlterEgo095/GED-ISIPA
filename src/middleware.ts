@@ -68,7 +68,7 @@ export async function middleware(request: NextRequest) {
   // Rate limiting for auth endpoints
   if (pathname.startsWith('/api/auth')) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-    if (!checkRateLimit(`auth:${ip}`, 30, 60000)) {
+    if (!checkRateLimit(`auth:${ip}`, 100, 60000)) {
       return NextResponse.json({ error: 'Trop de tentatives. Réessayez plus tard.' }, { status: 429 })
     }
   }
@@ -76,7 +76,7 @@ export async function middleware(request: NextRequest) {
   // Rate limiting for API
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth')) {
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-    if (!checkRateLimit(`api:${ip}`, 100, 60000)) {
+    if (!checkRateLimit(`api:${ip}`, 300, 60000)) {
       return NextResponse.json({ error: 'Limite de requêtes dépassée.' }, { status: 429 })
     }
   }
