@@ -40,9 +40,9 @@ export async function GET(
 
     // Check if file exists on disk
     const filePath = document.filePath
-    const absolutePath = path.isAbsolute(filePath)
-      ? filePath
-      : path.join(process.cwd(), filePath)
+    // Always resolve relative to cwd - strip leading slashes so /docs/file.pdf -> cwd/docs/file.pdf
+    const relativePath = filePath.replace(/^\/+/g, '')
+    const absolutePath = path.join(process.cwd(), relativePath)
 
     if (!(await fileExists(absolutePath))) {
       return NextResponse.json({ error: 'Fichier introuvable sur le serveur' }, { status: 404 })
