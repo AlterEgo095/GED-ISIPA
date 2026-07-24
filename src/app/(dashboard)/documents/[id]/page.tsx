@@ -168,7 +168,7 @@ export default function DocumentDetailPage() {
               <Trash2 className="h-4 w-4 mr-2" /> Supprimer
             </Button>
           )}
-          <Button variant="outline" onClick={() => handleAction('download')} disabled={actionLoading}>
+          <Button variant="outline" onClick={() => window.open(`/api/documents/${params.id}/download`, '_blank')} disabled={actionLoading}>
             <Download className="h-4 w-4 mr-2" /> Télécharger
           </Button>
         </div>

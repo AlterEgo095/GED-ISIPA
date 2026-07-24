@@ -2,6 +2,7 @@
 
 import { StatCard, ChartCard, QuickActions, RecentList } from './dashboard-widgets'
 import { FileText, DollarSign, Users, TrendingUp, Plus, Search, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { statusLabels } from '@/lib/constants'
 
 interface SmeDashboardProps {
@@ -16,7 +17,8 @@ interface SmeDashboardProps {
 }
 
 export function SmeDashboard({ stats, recentDocs = [], docsByType = [] }: SmeDashboardProps) {
-  return (
+  const router = useRouter()
+    return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tableau de Bord — PME</h1>
@@ -60,9 +62,9 @@ export function SmeDashboard({ stats, recentDocs = [], docsByType = [] }: SmeDas
 
       <QuickActions
         actions={[
-          { label: 'Nouveau document', icon: Plus, onClick: () => {} },
-          { label: 'Recherche', icon: Search, onClick: () => {} },
-          { label: 'Importer', icon: Upload, onClick: () => {} },
+          { label: 'Nouveau document', icon: Plus, onClick: () => router.push('/documents/upload') },
+          { label: 'Recherche', icon: Search, onClick: () => router.push('/documents') },
+          { label: 'Importer', icon: Upload, onClick: () => router.push('/documents/upload') },
         ]}
       />
     </div>

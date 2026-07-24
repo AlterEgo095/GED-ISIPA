@@ -2,6 +2,7 @@
 
 import { StatCard, ChartCard, QuickActions, RecentList } from './dashboard-widgets'
 import { FileText, GraduationCap, BookOpen, Users, Plus, Search, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { statusLabels } from '@/lib/constants'
 
 interface UniversityDashboardProps {
@@ -22,7 +23,8 @@ interface UniversityDashboardProps {
 }
 
 export function UniversityDashboard({ stats, recentDocs = [], docsByType = [] }: UniversityDashboardProps) {
-  return (
+  const router = useRouter()
+    return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tableau de bord — Université</h1>
@@ -67,9 +69,9 @@ export function UniversityDashboard({ stats, recentDocs = [], docsByType = [] }:
 
       <QuickActions
         actions={[
-          { label: 'Nouveau dossier', icon: Plus, onClick: () => {} },
-          { label: 'Rechercher un étudiant', icon: Search, onClick: () => {} },
-          { label: 'Importer document', icon: Upload, onClick: () => {} },
+          { label: 'Nouveau dossier', icon: Plus, onClick: () => router.push('/documents/upload') },
+          { label: 'Rechercher un étudiant', icon: Search, onClick: () => router.push('/documents') },
+          { label: 'Importer document', icon: Upload, onClick: () => router.push('/documents/upload') },
         ]}
       />
     </div>

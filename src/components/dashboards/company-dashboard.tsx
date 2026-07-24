@@ -2,6 +2,7 @@
 
 import { StatCard, ChartCard, QuickActions, RecentList } from './dashboard-widgets'
 import { FileText, Briefcase, DollarSign, Users, Plus, Search, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { statusLabels } from '@/lib/constants'
 
 interface CompanyDashboardProps {
@@ -19,7 +20,8 @@ interface CompanyDashboardProps {
 }
 
 export function CompanyDashboard({ stats, recentDocs = [], docsByType = [] }: CompanyDashboardProps) {
-  return (
+  const router = useRouter()
+    return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tableau de Bord — Entreprise</h1>
@@ -63,9 +65,9 @@ export function CompanyDashboard({ stats, recentDocs = [], docsByType = [] }: Co
 
       <QuickActions
         actions={[
-          { label: 'Nouveau contrat', icon: Plus, onClick: () => {} },
-          { label: 'Recherche', icon: Search, onClick: () => {} },
-          { label: 'Importer', icon: Upload, onClick: () => {} },
+          { label: 'Nouveau contrat', icon: Plus, onClick: () => router.push('/documents/upload') },
+          { label: 'Recherche', icon: Search, onClick: () => router.push('/documents') },
+          { label: 'Importer', icon: Upload, onClick: () => router.push('/documents/upload') },
         ]}
       />
     </div>

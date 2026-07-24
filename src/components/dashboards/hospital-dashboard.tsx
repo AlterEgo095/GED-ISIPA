@@ -2,6 +2,7 @@
 
 import { StatCard, ChartCard, QuickActions, RecentList } from './dashboard-widgets'
 import { FileText, Stethoscope, Users, Heart, Plus, Search, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { statusLabels } from '@/lib/constants'
 
 interface HospitalDashboardProps {
@@ -19,7 +20,8 @@ interface HospitalDashboardProps {
 }
 
 export function HospitalDashboard({ stats, recentDocs = [], docsByType = [] }: HospitalDashboardProps) {
-  return (
+  const router = useRouter()
+    return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tableau de Bord — Hôpital</h1>
@@ -63,9 +65,9 @@ export function HospitalDashboard({ stats, recentDocs = [], docsByType = [] }: H
 
       <QuickActions
         actions={[
-          { label: 'Nouveau dossier patient', icon: Plus, onClick: () => {} },
-          { label: 'Recherche patient', icon: Search, onClick: () => {} },
-          { label: 'Importer dossier', icon: Upload, onClick: () => {} },
+          { label: 'Nouveau dossier patient', icon: Plus, onClick: () => router.push('/documents/upload') },
+          { label: 'Recherche patient', icon: Search, onClick: () => router.push('/documents') },
+          { label: 'Importer dossier', icon: Upload, onClick: () => router.push('/documents/upload') },
         ]}
       />
     </div>

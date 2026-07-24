@@ -2,6 +2,7 @@
 
 import { StatCard, ChartCard, QuickActions, RecentList } from './dashboard-widgets'
 import { FileText, Scale, Users, Receipt, Plus, Search, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { statusLabels } from '@/lib/constants'
 
 interface LawFirmDashboardProps {
@@ -19,7 +20,8 @@ interface LawFirmDashboardProps {
 }
 
 export function LawFirmDashboard({ stats, recentDocs = [], docsByType = [] }: LawFirmDashboardProps) {
-  return (
+  const router = useRouter()
+    return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Tableau de Bord — Cabinet Juridique</h1>
@@ -63,9 +65,9 @@ export function LawFirmDashboard({ stats, recentDocs = [], docsByType = [] }: La
 
       <QuickActions
         actions={[
-          { label: 'Nouveau dossier', icon: Plus, onClick: () => {} },
-          { label: 'Recherche client', icon: Search, onClick: () => {} },
-          { label: 'Importer', icon: Upload, onClick: () => {} },
+          { label: 'Nouveau dossier', icon: Plus, onClick: () => router.push('/documents/upload') },
+          { label: 'Recherche client', icon: Search, onClick: () => router.push('/documents') },
+          { label: 'Importer', icon: Upload, onClick: () => router.push('/documents/upload') },
         ]}
       />
     </div>

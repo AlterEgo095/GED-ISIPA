@@ -24,10 +24,6 @@ import {
 import { MoreHorizontal, Eye, Edit, Archive, CheckCircle, XCircle, Send, Upload } from 'lucide-react'
 import { statusLabels, statusColors, classificationLabels, classificationColors, typeLabels } from '@/lib/constants'
 import type { DocumentStatus, Classification, DocumentType } from '@prisma/client'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-
 interface Document {
   id: string
   title: string
@@ -69,7 +65,7 @@ export function DocumentList({
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
-  const [uploadOpen, setUploadOpen] = useState(false)
+  
 
   return (
     <div className="space-y-4">
@@ -104,46 +100,11 @@ export function DocumentList({
           </SelectContent>
         </Select>
 
-        <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-          <DialogTrigger asChild>
-            <Button>
+        <Button onClick={() => router.push('/documents/upload')}>
               <Upload className="h-4 w-4 mr-2" />
               Nouveau document
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nouveau document</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Titre</Label>
-                <Input placeholder="Titre du document" />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea placeholder="Description du document" />
-              </div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(typeLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="w-full" onClick={() => setUploadOpen(false)}>
-                Créer le document
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+                </div>
 
       {/* Table */}
       <Card>
