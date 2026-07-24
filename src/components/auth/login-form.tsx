@@ -39,12 +39,25 @@ export function LoginForm() {
           : result.error)
         setLoading(false)
       } else if (result?.ok) {
-        // Fetch session to determine role-based redirect
+        // Fetch session to determine role-based redirect with correct dashboard URL
         try {
           const sessionRes = await fetch('/api/auth/session')
           const sessionData = await sessionRes.json()
+          const orgType = sessionData?.user?.organizationType
           if (sessionData?.user?.role === 'SUPER_ADMIN') {
             window.location.href = '/admin/dashboard'
+          } else if (orgType) {
+            const dashboardRoutes: Record<string, string> = {
+              UNIVERSITY: '/dashboard/university',
+              HOSPITAL: '/dashboard/hospital',
+              COMPANY: '/dashboard/company',
+              GOVERNMENT: '/dashboard/government',
+              SME: '/dashboard/sme',
+              LAW_FIRM: '/dashboard/law-firm',
+              INSTITUTION: '/dashboard',
+              NGO: '/dashboard',
+            }
+            window.location.href = dashboardRoutes[orgType] || '/dashboard'
           } else {
             window.location.href = '/dashboard'
           }
